@@ -14,6 +14,10 @@ Not affiliated with Battlestate Games. "Escape from Tarkov" and "Battlepass" are
 - **Document map tooltips** — hover any document type to see which maps it drops on, sourced from [tarkovdocsmap.com](https://tarkovdocsmap.com/) (also embedded in its own tab).
 - **18-language UI** — the app's own interface (not the map data) is available in English, Russian, Japanese, Chinese, Korean, Turkish, Spanish (Spain), Spanish (Mexico), German, Italian, French, Czech, Hungarian, Polish, Portuguese, Slovak, Romanian, and Vietnamese. See [i18n.js](i18n.js) for exactly what is and isn't translated, and why.
 - **All 53 rewards and document types are built in** — the season's structure (which page each reward is on, its name, and its total document cost) is the same for every player, so it ships hardcoded and shows up immediately on first launch. The only thing you fill in yourself is the *document-type breakdown* per level, since that's genuinely personal — see **Setting up your own data** below.
+- **Season-wide needs summary** — a collapsible section on the Main tab totaling up documents still needed across every unclaimed reward in the whole season, not just the page you're currently looking at, for planning a farming run further ahead.
+- **Keyboard page navigation** — `Q`/`E` step between pages, same as the arrow buttons. A row of clickable ticks above the page controls shows your progress across all 12 pages at a glance; click any tick to jump straight to it.
+- **Automatic daily backups** of your saved progress and costs, with an "Open backups folder" button in Settings if you ever need to recover one.
+- **Self-updating** — installed copies check for and install new releases automatically in the background.
 
 ## Getting started
 
@@ -38,6 +42,8 @@ npm start
 
 **Building your own installer**: `npm run dist` (Windows only) produces `dist/Tarkov Battlepass Tracker Setup <version>.exe` via [electron-builder](https://www.electron.build/). `npm run pack` builds an unpacked app folder for a quicker sanity check without generating the full installer.
 
+**Publishing a release** (maintainers only): bump `version` in `package.json`, then `npm run release` — builds the installer and uploads it straight to this repo's GitHub Releases via electron-builder's `--publish always`, which is what installed copies of the app check against (see `setupAutoUpdater()` in `main.js`). Needs a `GH_TOKEN` environment variable with `repo` access set first; electron-builder picks it up automatically.
+
 ## Setting up your own data
 
 **This is the one manual step.** The season's structure — which page each reward is on, its name, and its total document cost — is hardcoded and identical for everyone, so it's already there when you launch. Every reward starts with its Claim button greyed out, though, because the *document-type breakdown* behind that total is personal: two players can need completely different document types for the exact same reward, even though the total is the same.
@@ -57,6 +63,8 @@ The importer checks your math for you: if a row's document-type columns don't ad
 Everything personal to you — `data.json` (owned document counts, claimed rewards, settings) and `battlepass.xlsx` or `battlepass.csv` (your document costs, whichever format you picked) — lives in `%APPDATA%\TarkovBattlepassTracker\`, outside the app's own install/source directory entirely.
 
 Settings has two reset buttons under **Reset**: **Reset Progress** clears claimed rewards and owned document counts back to zero while keeping your entered cost data exactly as it is — "play through the same Battlepass again from scratch." **Full Reset** wipes the app's saved state entirely, including your entered costs, back to a blank install (your actual `battlepass.xlsx`/`.csv` file on disk is never touched, so re-importing afterward brings your costs straight back).
+
+`data.json` is also backed up automatically, once per day, to `%APPDATA%\TarkovBattlepassTracker\backups\` (the last 14 days are kept). There's no in-app restore — if you ever need one, use **Open backups folder** in Settings, copy the most recent `data-YYYY-MM-DD.json` over `data.json`, and reload the app.
 
 ## Feedback / issues
 
