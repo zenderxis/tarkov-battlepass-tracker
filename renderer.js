@@ -333,10 +333,12 @@ function renderClaimMode() {
 
 function setSettingsOpen(open) {
   document.getElementById('settings-overlay').classList.toggle('open', open);
-  if (open) {
-    populateBackupSelect();
-    endTour(); // Settings covers the whole tab — nothing left for a tour tip to point at
-  }
+  if (open) populateBackupSelect();
+  // Opening Settings normally means there's nothing left on Main for a tour
+  // tip to point at, so it ends the tour — unless the tour itself is the one
+  // opening/closing Settings to walk through a Settings-focused step (see
+  // showTourStep() below), in which case tourDrivingSettings suppresses this.
+  if (open && !tourDrivingSettings) endTour();
 }
 
 // Fills the "Restore from backup" dropdown, newest first. Re-run whenever
@@ -406,28 +408,37 @@ function switchTab(tab) {
 // ---------- guided walkthrough tour ----------
 //
 // A short, re-triggerable, skippable product tour (Settings -> Start
-// Walkthrough) that highlights real Main-tab elements one at a time —
-// distinct from maybeShowWalkthrough() above, which is a single one-time
-// explanation screen shown automatically on a fresh install. This one only
-// ever starts when the user explicitly asks for it, and can be taken as
-// many times as they like.
+// Walkthrough) that highlights real elements one at a time, across both the
+// Main tab and Settings — distinct from maybeShowWalkthrough() above, which
+// is a single one-time explanation screen shown automatically on a fresh
+// install. This one only ever starts when the user explicitly asks for it,
+// and can be taken as many times as they like.
 //
 // Each step's target is a stable, always-present container element (never
 // something that gets torn down and rebuilt via innerHTML = '' — see the
 // selectors below), so adding/removing the .tour-highlight class survives
 // any renderPage()/renderSidebar() that happens to fire while a step is
-// showing (e.g. claiming a tile mid-tour).
+// showing (e.g. claiming a tile mid-tour). inSettings marks which steps
+// need the Settings overlay open to be visible at all — showTourStep()
+// opens/closes it as needed when crossing that boundary in either direction.
 const TOUR_STEPS = [
-  { selector: '#main-sidebar', titleKey: 'tour.step1Title', bodyKey: 'tour.step1Body' },
-  { selector: '#sidebar-mode-tabs', titleKey: 'tour.step2Title', bodyKey: 'tour.step2Body' },
-  { selector: '#tile-grid', titleKey: 'tour.step3Title', bodyKey: 'tour.step3Body' },
-  { selector: '.page-nav', titleKey: 'tour.step4Title', bodyKey: 'tour.step4Body' },
-  { selector: '#page-needs-heading', titleKey: 'tour.step5Title', bodyKey: 'tour.step5Body' },
-  { selector: '#btn-settings', titleKey: 'tour.step6Title', bodyKey: 'tour.step6Body' },
+  { selector: '#main-sidebar', inSettings: false, titleKey: 'tour.step1Title', bodyKey: 'tour.step1Body' },
+  { selector: '#sidebar-mode-tabs', inSettings: false, titleKey: 'tour.step2Title', bodyKey: 'tour.step2Body' },
+  { selector: '#tile-grid', inSettings: false, titleKey: 'tour.step3Title', bodyKey: 'tour.step3Body' },
+  { selector: '.page-nav', inSettings: false, titleKey: 'tour.step4Title', bodyKey: 'tour.step4Body' },
+  { selector: '#page-needs-heading', inSettings: false, titleKey: 'tour.step5Title', bodyKey: 'tour.step5Body' },
+  { selector: '#btn-settings', inSettings: false, titleKey: 'tour.step6Title', bodyKey: 'tour.step6Body' },
+  { selector: '#about-section', inSettings: true, titleKey: 'tour.step7Title', bodyKey: 'tour.step7Body' },
+  { selector: '.spreadsheet-row', inSettings: true, titleKey: 'tour.step8Title', bodyKey: 'tour.step8Body' },
+  { selector: '.backup-section', inSettings: true, titleKey: 'tour.step9Title', bodyKey: 'tour.step9Body' },
+  { selector: '.reset-zone', inSettings: true, titleKey: 'tour.step10Title', bodyKey: 'tour.step10Body' },
+  { selector: '#season-summary', inSettings: true, titleKey: 'tour.step11Title', bodyKey: 'tour.step11Body' },
+  { selector: '#levels-section', inSettings: true, titleKey: 'tour.step12Title', bodyKey: 'tour.step12Body' },
 ];
 
 let tourStepIndex = 0;
 let tourHighlightEl = null;
+let tourDrivingSettings = false; // suppresses setSettingsOpen()'s auto-endTour() while the tour itself is the one opening/closing it
 
 function startTour() {
   setSettingsOpen(false);
@@ -446,6 +457,25 @@ function clearTourHighlight() {
 }
 
 function showTourStep(index) {
+  const step = TOUR_STEPS[index];
+  const settingsOverlay = document.getElementById('settings-overlay');
+  const settingsCurrentlyOpen = settingsOverlay.classList.contains('open');
+
+  // Crossing the Main/Settings boundary needs Settings toggled first, then
+  // a frame to let that layout settle before measuring anything — same
+  // reasoning as startTour()'s initial rAF.
+  if (step.inSettings !== settingsCurrentlyOpen) {
+    tourDrivingSettings = true;
+    setSettingsOpen(step.inSettings);
+    tourDrivingSettings = false;
+    requestAnimationFrame(() => renderTourStep(index));
+    return;
+  }
+
+  renderTourStep(index);
+}
+
+function renderTourStep(index) {
   const step = TOUR_STEPS[index];
   const target = document.querySelector(step.selector);
   if (!target) {
