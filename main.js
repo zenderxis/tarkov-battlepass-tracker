@@ -326,6 +326,18 @@ ipcMain.handle('data:save', (e, state) => {
   return true;
 });
 
+// Full Reset in Settings. DEFAULT_STATE is the single source of truth for
+// what "blank" looks like — returning it here (rather than renderer.js
+// building an equivalent object by hand) means there's only ever one place
+// that shape can drift. Doesn't touch battlepass.xlsx/.csv itself: only
+// app state (claims, owned counts, imported levels/document types,
+// settings) resets, so re-importing afterward is a single click, not a
+// re-fill-in-the-spreadsheet ordeal.
+ipcMain.handle('data:factoryReset', () => {
+  saveData(DEFAULT_STATE);
+  return DEFAULT_STATE;
+});
+
 ipcMain.handle('data:importXlsx', () => parseBattlepassXlsx());
 
 // Fresh clone/install: neither battlepass.xlsx nor battlepass.csv exists

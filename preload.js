@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('tracker', {
   loadData: () => ipcRenderer.invoke('data:load'),
   saveData: (state) => ipcRenderer.invoke('data:save', state),
+  factoryReset: () => ipcRenderer.invoke('data:factoryReset'),
   importXlsx: () => ipcRenderer.invoke('data:importXlsx'),
   xlsxSourceExists: () => ipcRenderer.invoke('data:xlsxSourceExists'),
   copyTemplate: (format) => ipcRenderer.invoke('data:copyTemplate', format),

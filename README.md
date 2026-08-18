@@ -59,7 +59,9 @@ That reads from your actual in-use spreadsheet in `%APPDATA%` (falling back to t
 
 ## Data storage
 
-Everything personal to you — `data.json` (owned document counts, claimed rewards, settings) and `battlepass.xlsx` or `battlepass.csv` (your document costs, whichever format you picked) — lives in `%APPDATA%\TarkovBattlepassTracker\`, outside the app's own install/source directory entirely. Delete `data.json` to reset your progress to a clean slate without touching your spreadsheet; delete the whole folder to reset everything, spreadsheet included.
+Everything personal to you — `data.json` (owned document counts, claimed rewards, settings) and `battlepass.xlsx` or `battlepass.csv` (your document costs, whichever format you picked) — lives in `%APPDATA%\TarkovBattlepassTracker\`, outside the app's own install/source directory entirely.
+
+Settings has two reset buttons if you'd rather not do this by hand: **Reset Progress** clears claims and document counts back to zero while keeping your imported levels and document types; **Full Reset** wipes the app's saved state back to a blank install (your actual `battlepass.xlsx`/`.csv` file is never touched, so re-importing afterward brings everything straight back).
 
 ## Feedback / issues
 

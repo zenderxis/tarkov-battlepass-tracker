@@ -135,6 +135,38 @@ function wireStaticControls() {
     }
   });
 
+  // Clears claims + owned counts only — levels, document types, and the
+  // spreadsheet link stay exactly as they are, so this is "play through
+  // the same Battlepass again from scratch", not a teardown.
+  document.getElementById('reset-progress-btn').addEventListener('click', () => {
+    const lang = state.language || 'en';
+    if (!confirm(t(lang, 'settings.resetProgressConfirm'))) return;
+    state.claims = {};
+    MODE_ORDER.forEach((m) => { state.modes[m].owned = {}; });
+    persist();
+    viewedPage = null;
+    setSettingsOpen(false);
+    renderAll();
+  });
+
+  // Wipes app state back to DEFAULT_STATE (main.js is the single source of
+  // truth for that shape — see data:factoryReset). Does NOT touch the real
+  // battlepass.xlsx/.csv file on disk, only the app's own saved state, so
+  // Import spreadsheet immediately after this reloads everything from the
+  // same file — this is a reset of the app, not of your actual spreadsheet
+  // work.
+  document.getElementById('full-reset-btn').addEventListener('click', async () => {
+    const lang = state.language || 'en';
+    if (!confirm(t(lang, 'settings.fullResetConfirm'))) return;
+    state = await window.tracker.factoryReset();
+    viewedPage = null;
+    sidebarMode = 'pvp';
+    setSettingsOpen(false);
+    populateLanguageSelect();
+    applyTranslations();
+    renderAll();
+  });
+
   document.getElementById('claim-mode-toggle').addEventListener('click', () => {
     state.claimMode = !state.claimMode;
     persist();

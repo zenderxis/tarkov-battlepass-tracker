@@ -1277,6 +1277,19 @@ button.danger:hover {
   gap: 8px;
 }
 
+/* Visually set apart from the spreadsheet toolbar above it — these two
+   buttons are destructive and irreversible, so a border + its own heading
+   keeps them from blending in with routine setup actions. */
+.reset-zone {
+  padding-top: 14px;
+  border-top: 1px solid #26282f;
+}
+
+.reset-buttons {
+  display: flex;
+  gap: 10px;
+}
+
 /* Buttons have no white-space/flex-shrink rule by default, so once
    .tiers-toolbar ran out of room next to the hint text, the browser was
    shrinking the button below its own label's width and wrapping "Import
