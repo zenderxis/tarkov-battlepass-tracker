@@ -1094,8 +1094,12 @@ function buildLevelCostCell(level, type, onUpdate) {
   const stepper = document.createElement('div');
   stepper.className = 'stepper';
 
+  // tabindex="-1" takes the +/- buttons out of the Tab order (still fully
+  // clickable) so Tab from one number field jumps straight to the next
+  // document type's field instead of stopping on the button in between.
   const minusBtn = document.createElement('button');
   minusBtn.textContent = '−';
+  minusBtn.tabIndex = -1;
   minusBtn.addEventListener('click', () => {
     setCost((level.cost[type] || 0) - 1);
     countInput.value = String(level.cost[type] || 0);
@@ -1112,6 +1116,7 @@ function buildLevelCostCell(level, type, onUpdate) {
 
   const plusBtn = document.createElement('button');
   plusBtn.textContent = '+';
+  plusBtn.tabIndex = -1;
   plusBtn.addEventListener('click', () => {
     setCost((level.cost[type] || 0) + 1);
     countInput.value = String(level.cost[type] || 0);
