@@ -1005,6 +1005,39 @@ html, body {
   margin-top: 14px;
 }
 
+/* First-launch walkthrough — reuses .settings-overlay/.settings-panel for
+   the same dim-backdrop-plus-box look, but centered vertically (align-items:
+   center, not Settings' flex-start) since there's no long scrollable content
+   here, and stacked above Settings (higher z-index) in the unlikely case
+   both ever end up open at once. Shown once via maybeShowWalkthrough() in
+   renderer.js, gated on state.hasSeenWalkthrough. */
+.walkthrough-overlay {
+  z-index: 60;
+  align-items: center;
+}
+
+.walkthrough-panel {
+  width: min(480px, 90%);
+  margin-top: 0;
+}
+
+.walkthrough-panel h2 {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.walkthrough-panel p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #c9cdd6;
+}
+
+.walkthrough-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .settings-header {
   display: flex;
   align-items: center;
@@ -1050,6 +1083,26 @@ html, body {
   font-family: inherit;
   padding: 6px 10px;
   cursor: pointer;
+}
+
+/* Version number + manual update check, right above the credits line —
+   same small/muted footer treatment. app-version-text is filled in from
+   window.tracker.getVersion() at boot (see renderer.js), so it always
+   reflects the actual running build rather than a value baked into the
+   HTML that could drift out of sync with package.json. */
+.version-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-top: 10px;
+  font-size: 12px;
+  color: #6a6f7b;
+}
+
+.version-row button {
+  font-size: 11px;
+  padding: 4px 10px;
 }
 
 /* Bottom-of-panel credits line — small, muted, out of the way of the actual

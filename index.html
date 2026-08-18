@@ -196,12 +196,30 @@
         </div>
       </details>
 
+      <div class="version-row" id="version-row">
+        <span class="version-text" id="app-version-text"></span>
+        <button id="check-updates-btn" data-i18n="settings.checkUpdatesButton">Check for Updates</button>
+      </div>
+
       <div class="credits-row" id="credits-row">
         <span class="credits-text" id="credits-created-by">Created by Zenderxis</span>
         <span class="credits-sep">·</span>
         <span class="credits-text">Discord: Zenderxis</span>
         <span class="credits-sep">·</span>
         <a class="credits-text credits-link" id="credits-reddit" href="#">Reddit: u/Zenderxis</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-overlay walkthrough-overlay" id="walkthrough-overlay">
+    <div class="settings-panel walkthrough-panel">
+      <h2 data-i18n="walkthrough.title">Welcome</h2>
+      <p data-i18n="walkthrough.body1">Every reward, page, and document total in this season is already built in — it's the same for everyone, so there's nothing to set up there.</p>
+      <p data-i18n="walkthrough.body2">The one thing that's actually personal to you is which document types make up each level's cost — that varies player to player even though the total doesn't. That's why every Claim button starts greyed out: nothing's been filled in yet.</p>
+      <p data-i18n="walkthrough.body3">Fastest way to fix that: open Settings and fill in your numbers in the Levels section. A spreadsheet is there too, if you'd rather work that way or want a backup.</p>
+      <div class="walkthrough-actions">
+        <button id="walkthrough-dismiss" data-i18n="walkthrough.dismissButton">Got it</button>
+        <button id="walkthrough-open-settings" class="primary" data-i18n="walkthrough.openSettingsButton">Open Settings</button>
       </div>
     </div>
   </div>

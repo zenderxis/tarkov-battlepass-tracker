@@ -17,6 +17,10 @@ async function boot() {
   applyTranslations();
   renderAll();
   wireStaticControls();
+  maybeShowWalkthrough();
+
+  const version = await window.tracker.getVersion();
+  document.getElementById('app-version-text').textContent = `v${version}`;
 }
 
 // ---------- i18n ----------
@@ -83,10 +87,20 @@ function wireStaticControls() {
     window.tracker.openExternal(REDDIT_URL);
   });
 
+  document.getElementById('walkthrough-dismiss').addEventListener('click', () => dismissWalkthrough());
+  document.getElementById('walkthrough-open-settings').addEventListener('click', () => {
+    dismissWalkthrough();
+    setSettingsOpen(true);
+  });
+
   document.getElementById('btn-settings').addEventListener('click', () => setSettingsOpen(true));
   document.getElementById('settings-close').addEventListener('click', () => setSettingsOpen(false));
   document.getElementById('settings-overlay').addEventListener('click', (e) => {
     if (e.target.id === 'settings-overlay') setSettingsOpen(false);
+  });
+
+  document.getElementById('walkthrough-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'walkthrough-overlay') dismissWalkthrough();
   });
 
   document.addEventListener('keydown', (e) => {
@@ -94,8 +108,12 @@ function wireStaticControls() {
     // the backdrop. No confirm — every edit in Settings already saves as
     // it's made (see persist() calls throughout), so there's nothing to
     // lose by closing, and whatever was changed stays changed either way.
+    // Same treatment for the (higher-priority) walkthrough overlay if it's
+    // the one currently showing.
     if (e.key === 'Escape') {
-      if (document.getElementById('settings-overlay').classList.contains('open')) {
+      if (document.getElementById('walkthrough-overlay').classList.contains('open')) {
+        dismissWalkthrough();
+      } else if (document.getElementById('settings-overlay').classList.contains('open')) {
         setSettingsOpen(false);
       }
       return;
@@ -106,11 +124,12 @@ function wireStaticControls() {
     // firing while it'd interfere with actually typing: a focused text
     // field (cost inputs, language search, etc. — "e" in particular is a
     // valid character inside a number input, for scientific notation),
-    // Settings open (no page nav visible behind it), or the Map tab (no
-    // tiles to page through there).
+    // Settings or the walkthrough open (no page nav visible behind either),
+    // or the Map tab (no tiles to page through there).
     const key = e.key.toLowerCase();
     if (key !== 'q' && key !== 'e') return;
     if (document.getElementById('settings-overlay').classList.contains('open')) return;
+    if (document.getElementById('walkthrough-overlay').classList.contains('open')) return;
     if (!document.getElementById('panel-main').classList.contains('active')) return;
     const active = document.activeElement;
     const tag = active && active.tagName;
@@ -149,6 +168,26 @@ function wireStaticControls() {
   document.getElementById('open-backups-btn').addEventListener('click', async () => {
     const result = await window.tracker.openBackupsFolder();
     if (!result.opened) alert(`Couldn't open the backups folder: ${result.error || 'unknown error'}`);
+  });
+
+  document.getElementById('check-updates-btn').addEventListener('click', async () => {
+    const lang = state.language || 'en';
+    const btn = document.getElementById('check-updates-btn');
+    btn.disabled = true;
+    try {
+      const result = await window.tracker.checkForUpdates();
+      if (result.status === 'available') {
+        alert(t(lang, 'settings.updateAvailable', { version: result.version }));
+      } else if (result.status === 'up-to-date') {
+        alert(t(lang, 'settings.updateUpToDate'));
+      } else if (result.status === 'dev-mode') {
+        alert(t(lang, 'settings.updateDevMode'));
+      } else {
+        alert(t(lang, 'settings.updateError', { error: result.error || 'unknown error' }));
+      }
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   // Clears claims + owned counts only — levels, document types, and the
@@ -230,6 +269,23 @@ function renderClaimMode() {
 
 function setSettingsOpen(open) {
   document.getElementById('settings-overlay').classList.toggle('open', open);
+}
+
+// Shown once, only on a genuinely fresh install — see main.js's loadData(),
+// which forces state.hasSeenWalkthrough true for any save that already
+// existed on disk, even one predating this field. Dismissing either button
+// marks it seen for good; "Open Settings" also jumps straight to where a
+// new user actually needs to go (Levels) to stop seeing every Claim button
+// greyed out.
+function maybeShowWalkthrough() {
+  if (state.hasSeenWalkthrough) return;
+  document.getElementById('walkthrough-overlay').classList.add('open');
+}
+
+function dismissWalkthrough() {
+  state.hasSeenWalkthrough = true;
+  persist();
+  document.getElementById('walkthrough-overlay').classList.remove('open');
 }
 
 function switchTab(tab) {

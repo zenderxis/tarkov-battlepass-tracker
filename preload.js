@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('tracker', {
   createStarterSheet: (format) => ipcRenderer.invoke('data:createStarterSheet', format),
   exportSheet: (format, costsById) => ipcRenderer.invoke('data:exportSheet', { format, costsById }),
   reloadApp: () => ipcRenderer.invoke('app:reload'),
+  getVersion: () => ipcRenderer.invoke('app:getVersion'),
+  checkForUpdates: () => ipcRenderer.invoke('app:checkForUpdates'),
   openMap: () => ipcRenderer.invoke('map:open'),
   closeMap: () => ipcRenderer.invoke('map:close'),
   minimize: () => ipcRenderer.invoke('win:minimize'),

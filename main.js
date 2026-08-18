@@ -86,6 +86,12 @@ const DEFAULT_STATE = {
   // spreadsheet — hand-entered from the user 2026-08-17 — so it's editable state,
   // not derived, in case season rules change.
   pageThresholds: { 2: 4, 3: 4, 4: 4, 5: 4, 6: 4, 7: 2, 8: 3, 9: 4, 10: 4, 11: 3, 12: 3 },
+  // Gates the first-launch walkthrough overlay (see maybeShowWalkthrough()
+  // in renderer.js) — true means "don't show it again". Only ever false for
+  // a genuinely brand-new install (no data.json on disk yet at all); see
+  // loadData() below for why an existing save always forces this true
+  // regardless of what's actually stored in it.
+  hasSeenWalkthrough: false,
 };
 
 // Older saves used `tiers`/`requirements`/`cap` for what's now `levels`/`cost`/`dailyCap`
@@ -183,6 +189,11 @@ function loadData() {
       modes: { ...DEFAULT_STATE.modes, ...(parsed.modes || {}) },
       pageThresholds: { ...DEFAULT_STATE.pageThresholds, ...(parsed.pageThresholds || {}) },
       claims: { ...(parsed.claims || {}) },
+      // Any save that exists at all (even one from before this field
+      // existed) means this isn't a first-time user — force it true unless
+      // it was explicitly recorded as false (a save from a version that has
+      // the walkthrough, where the user genuinely hasn't dismissed it yet).
+      hasSeenWalkthrough: parsed.hasSeenWalkthrough === false ? false : true,
     };
     return syncStructuralData(merged);
   } catch {
@@ -484,12 +495,73 @@ ipcMain.handle('app:reload', () => {
   app.exit(0);
 });
 
+ipcMain.handle('app:getVersion', () => app.getVersion());
+
 ipcMain.handle('win:minimize', () => mainWindow.minimize());
 ipcMain.handle('win:maximize', () => {
   if (mainWindow.isMaximized()) mainWindow.unmaximize();
   else mainWindow.maximize();
 });
 ipcMain.handle('win:close', () => mainWindow.close());
+
+// ---------- Auto-update ----------
+// Checks GitHub Releases (see package.json's build.publish) for a newer
+// version, downloads it in the background if found, and prompts to restart
+// once it's ready. Packaged installs only — a dev run via `npm start` has
+// no app-update.yml (electron-builder generates it at build time), so
+// electron-updater would just log a confusing "cannot find update info"
+// error every launch otherwise.
+const { autoUpdater } = require('electron-updater');
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+function setupAutoUpdater() {
+  if (!app.isPackaged) return;
+
+  autoUpdater.on('update-downloaded', (info) => {
+    dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      buttons: ['Restart now', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+      title: 'Update ready',
+      message: `Version ${info.version} has been downloaded.`,
+      detail: 'Restart the app to install it. Your data is untouched either way — it lives outside the app folder.',
+    }).then((result) => {
+      if (result.response === 0) autoUpdater.quitAndInstall();
+    });
+  });
+
+  // Failures (offline, GitHub unreachable, no releases published yet) are
+  // logged, not surfaced to the user — a background check silently not
+  // working shouldn't interrupt anyone's session. The manual "Check for
+  // Updates" button in Settings (see app:checkForUpdates below) surfaces
+  // errors explicitly, since that's an intentional user action.
+  autoUpdater.on('error', (err) => {
+    console.error('Auto-update check failed:', err);
+  });
+
+  // Short delay so this doesn't compete with the window's own startup.
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch((err) => console.error('Auto-update check failed:', err));
+  }, 3000);
+}
+
+// Settings' "Check for Updates" button — same underlying check as the
+// automatic one above, just user-triggered and with a result the renderer
+// can show feedback for instead of failing silently.
+ipcMain.handle('app:checkForUpdates', async () => {
+  if (!app.isPackaged) return { status: 'dev-mode' };
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    const current = app.getVersion();
+    const latest = result && result.updateInfo && result.updateInfo.version;
+    if (latest && latest !== current) return { status: 'available', version: latest };
+    return { status: 'up-to-date', version: current };
+  } catch (err) {
+    return { status: 'error', error: err.message || String(err) };
+  }
+});
 
 // One-time upgrade path from the pre-installer layout (running from source,
 // battlepass.xlsx sitting in data-source/ next to the code) to the new one
@@ -508,5 +580,6 @@ function migrateLegacyXlsx() {
 app.whenReady().then(() => {
   migrateLegacyXlsx();
   createWindow();
+  setupAutoUpdater();
 });
 app.on('window-all-closed', () => app.quit());
