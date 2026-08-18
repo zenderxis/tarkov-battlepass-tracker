@@ -5,7 +5,7 @@ contextBridge.exposeInMainWorld('tracker', {
   saveData: (state) => ipcRenderer.invoke('data:save', state),
   importXlsx: () => ipcRenderer.invoke('data:importXlsx'),
   xlsxSourceExists: () => ipcRenderer.invoke('data:xlsxSourceExists'),
-  copyTemplateXlsx: () => ipcRenderer.invoke('data:copyTemplateXlsx'),
+  copyTemplate: (format) => ipcRenderer.invoke('data:copyTemplate', format),
   reloadApp: () => ipcRenderer.invoke('app:reload'),
   openMap: () => ipcRenderer.invoke('map:open'),
   closeMap: () => ipcRenderer.invoke('map:close'),

@@ -420,11 +420,32 @@ function buildSimpleEmptyState(text) {
   return div;
 }
 
-// First-run empty state: data-source/battlepass.xlsx doesn't exist yet
-// (gitignored — everyone's own document breakdown is personal, see
+// Shared by both onboarding template buttons below. format is 'xlsx' or
+// 'csv' — CSV needs no spreadsheet software at all (any text editor works),
+// which is the whole point of offering it as a second option here.
+async function copyTemplateAndRefresh(format) {
+  const lang = state.language || 'en';
+  const result = await window.tracker.copyTemplate(format);
+  if (result.copied) {
+    xlsxSourceExists = true;
+    alert(t(lang, 'main.templateCopied'));
+    renderPage();
+  } else if (result.reason === 'already-exists') {
+    // Someone else (or a previous click) already created it — just
+    // reflect that instead of erroring.
+    xlsxSourceExists = true;
+    renderPage();
+  } else {
+    alert(`Couldn't find the starter template (data-source/battlepass.template.${format}). Run "node scripts/generate-template.js" or ask whoever set up this copy of the app.`);
+  }
+}
+
+// First-run empty state: neither battlepass.xlsx nor battlepass.csv exists
+// yet (both gitignored — everyone's own document breakdown is personal, see
 // scripts/generate-template.js), so rather than pointing at Import and
-// having it fail with a raw file-not-found error, offer to copy the
-// blank starter template into place as the actual next step.
+// having it fail with a raw file-not-found error, offer to copy a blank
+// starter template into place as the actual next step — in whichever
+// format the user can actually work with.
 function buildOnboardingEmptyState() {
   const lang = state.language || 'en';
   const wrap = document.createElement('div');
@@ -434,25 +455,22 @@ function buildOnboardingEmptyState() {
   body.textContent = t(lang, 'main.onboardingNoSource');
   wrap.appendChild(body);
 
-  const btn = document.createElement('button');
-  btn.className = 'primary';
-  btn.textContent = t(lang, 'main.copyTemplateButton');
-  btn.addEventListener('click', async () => {
-    const result = await window.tracker.copyTemplateXlsx();
-    if (result.copied) {
-      xlsxSourceExists = true;
-      alert(t(lang, 'main.templateCopied'));
-      renderPage();
-    } else if (result.reason === 'already-exists') {
-      // Someone else (or a previous click) already created it — just
-      // reflect that instead of erroring.
-      xlsxSourceExists = true;
-      renderPage();
-    } else {
-      alert(`Couldn't find the starter template (data-source/battlepass.template.xlsx). Run "node scripts/generate-template.js" or ask whoever set up this copy of the app.`);
-    }
-  });
-  wrap.appendChild(btn);
+  const btnRow = document.createElement('div');
+  btnRow.className = 'onboarding-btn-row';
+
+  const xlsxBtn = document.createElement('button');
+  xlsxBtn.className = 'primary';
+  xlsxBtn.textContent = t(lang, 'main.copyTemplateButton');
+  xlsxBtn.addEventListener('click', () => copyTemplateAndRefresh('xlsx'));
+  btnRow.appendChild(xlsxBtn);
+
+  const csvBtn = document.createElement('button');
+  csvBtn.textContent = t(lang, 'main.copyTemplateCsvButton');
+  csvBtn.title = t(lang, 'main.copyTemplateCsvHint');
+  csvBtn.addEventListener('click', () => copyTemplateAndRefresh('csv'));
+  btnRow.appendChild(csvBtn);
+
+  wrap.appendChild(btnRow);
 
   return wrap;
 }

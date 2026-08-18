@@ -16,12 +16,22 @@ const DATA_FILE = path.join(app.getPath('userData'), 'data.json');
 // file needs to be. The *template* is fine to stay bundled (read-only is
 // all it ever needs).
 const XLSX_SOURCE_PATH = path.join(app.getPath('userData'), 'battlepass.xlsx');
+// Plain-CSV alternative to the .xlsx above, for anyone without Excel/
+// LibreOffice/Sheets access — editable in literally any text editor,
+// Notepad included. Same rows/columns, just no formulas (CSV has no such
+// concept — a formula cell like "Doc Count" becomes whatever it last
+// computed to when a .csv template is generated). Parsed identically to
+// .xlsx (SheetJS handles both through the same API), so nothing downstream
+// of resolveSheetSourcePath() needs to know or care which one a given user
+// picked.
+const CSV_SOURCE_PATH = path.join(app.getPath('userData'), 'battlepass.csv');
 // Where battlepass.xlsx used to live, back when this only ever ran from
 // source (`npm start`, no installer). migrateLegacyXlsx() below moves an
 // existing file from here to XLSX_SOURCE_PATH once, so upgrading from the
 // old layout doesn't lose anyone's already-filled-in document counts.
 const LEGACY_XLSX_SOURCE_PATH = path.join(__dirname, 'data-source', 'battlepass.xlsx');
 const XLSX_TEMPLATE_PATH = path.join(__dirname, 'data-source', 'battlepass.template.xlsx');
+const CSV_TEMPLATE_PATH = path.join(__dirname, 'data-source', 'battlepass.template.csv');
 const APP_ICON_PATH = path.join(__dirname, 'data-source', 'app_resources', 'black_div.ico');
 const XLSX_SHEET_NAME = 'pvp'; // misleadingly named — this one table applies to all three modes
 const MAP_URL = 'https://tarkovdocsmap.com/';
@@ -160,11 +170,21 @@ function saveData(state) {
 // specific to this season: update it if a future season's total changes.
 const EXPECTED_SEASON_TOTAL = 501;
 
+// Either battlepass.xlsx or battlepass.csv counts as "the" source — same
+// columns, parsed identically either way (SheetJS handles both through the
+// same API). .xlsx wins if somehow both exist. Returns null if neither does.
+function resolveSheetSourcePath() {
+  if (fs.existsSync(XLSX_SOURCE_PATH)) return XLSX_SOURCE_PATH;
+  if (fs.existsSync(CSV_SOURCE_PATH)) return CSV_SOURCE_PATH;
+  return null;
+}
+
 function parseBattlepassXlsx() {
-  if (!fs.existsSync(XLSX_SOURCE_PATH)) {
-    throw new Error(`Spreadsheet not found at ${XLSX_SOURCE_PATH}`);
+  const sourcePath = resolveSheetSourcePath();
+  if (!sourcePath) {
+    throw new Error(`No spreadsheet found at ${XLSX_SOURCE_PATH} or ${CSV_SOURCE_PATH}`);
   }
-  const wb = XLSX.readFile(XLSX_SOURCE_PATH);
+  const wb = XLSX.readFile(sourcePath);
   const sheetName = wb.SheetNames.includes(XLSX_SHEET_NAME) ? XLSX_SHEET_NAME : wb.SheetNames[0];
   const sheet = wb.Sheets[sheetName];
   const rows = XLSX.utils.sheet_to_json(sheet, { defval: null, raw: true });
@@ -308,17 +328,21 @@ ipcMain.handle('data:save', (e, state) => {
 
 ipcMain.handle('data:importXlsx', () => parseBattlepassXlsx());
 
-// Fresh clone/install: data-source/battlepass.xlsx is gitignored (it's
-// personal — see scripts/generate-template.js), so it won't exist until a
-// user creates it. These two back the first-run "let's set you up" flow in
-// the renderer instead of a raw file-not-found error the first time someone
-// hits Import.
-ipcMain.handle('data:xlsxSourceExists', () => fs.existsSync(XLSX_SOURCE_PATH));
-ipcMain.handle('data:copyTemplateXlsx', () => {
-  if (fs.existsSync(XLSX_SOURCE_PATH)) return { copied: false, reason: 'already-exists' };
-  if (!fs.existsSync(XLSX_TEMPLATE_PATH)) return { copied: false, reason: 'no-template' };
-  fs.mkdirSync(path.dirname(XLSX_SOURCE_PATH), { recursive: true });
-  fs.copyFileSync(XLSX_TEMPLATE_PATH, XLSX_SOURCE_PATH);
+// Fresh clone/install: neither battlepass.xlsx nor battlepass.csv exists
+// yet (both personal — see scripts/generate-template.js), so nothing's
+// there until a user creates one. These back the first-run "let's set you
+// up" flow in the renderer instead of a raw file-not-found error the first
+// time someone hits Import. format is 'xlsx' or 'csv' — the onboarding
+// screen offers both as separate buttons (CSV needs no spreadsheet software
+// at all, just a text editor — see the CSV_SOURCE_PATH comment above).
+ipcMain.handle('data:xlsxSourceExists', () => resolveSheetSourcePath() !== null);
+ipcMain.handle('data:copyTemplate', (e, format) => {
+  const destPath = format === 'csv' ? CSV_SOURCE_PATH : XLSX_SOURCE_PATH;
+  const templatePath = format === 'csv' ? CSV_TEMPLATE_PATH : XLSX_TEMPLATE_PATH;
+  if (resolveSheetSourcePath()) return { copied: false, reason: 'already-exists' };
+  if (!fs.existsSync(templatePath)) return { copied: false, reason: 'no-template' };
+  fs.mkdirSync(path.dirname(destPath), { recursive: true });
+  fs.copyFileSync(templatePath, destPath);
   return { copied: true };
 });
 
@@ -332,13 +356,14 @@ ipcMain.handle('shell:openExternal', (e, url) => {
   }
 });
 
-// "Open battlepass.xlsx" button in Settings — opens the real, writable
-// spreadsheet (userData, not the app's own directory — see
-// migrateLegacyXlsx() above) in whatever app Windows has associated with
-// .xlsx, same as double-clicking it in Explorer.
+// "Open spreadsheet" button in Settings — opens whichever of
+// battlepass.xlsx/.csv actually exists (userData, not the app's own
+// directory — see migrateLegacyXlsx() above) in whatever app Windows has
+// associated with that extension, same as double-clicking it in Explorer.
 ipcMain.handle('shell:openXlsx', async () => {
-  if (!fs.existsSync(XLSX_SOURCE_PATH)) return { opened: false, reason: 'no-file' };
-  const err = await shell.openPath(XLSX_SOURCE_PATH);
+  const sourcePath = resolveSheetSourcePath();
+  if (!sourcePath) return { opened: false, reason: 'no-file' };
+  const err = await shell.openPath(sourcePath);
   return err ? { opened: false, reason: 'shell-error', error: err } : { opened: true };
 });
 
@@ -373,7 +398,10 @@ ipcMain.handle('win:close', () => mainWindow.close());
 // (userData, alongside data.json). Never overwrites — if something's
 // already at the new location, this is a no-op.
 function migrateLegacyXlsx() {
-  if (fs.existsSync(XLSX_SOURCE_PATH)) return;
+  // Also bail if the user's already set up a CSV source instead — don't
+  // clobber that choice with a leftover legacy .xlsx nobody's used in a
+  // while.
+  if (resolveSheetSourcePath()) return;
   if (!fs.existsSync(LEGACY_XLSX_SOURCE_PATH)) return;
   fs.mkdirSync(path.dirname(XLSX_SOURCE_PATH), { recursive: true });
   fs.copyFileSync(LEGACY_XLSX_SOURCE_PATH, XLSX_SOURCE_PATH);

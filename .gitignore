@@ -6,9 +6,14 @@ node_modules/
 dist/
 
 # Your real Battlepass data — personal to you, not shared. Everyone who
-# clones this needs to fill in their own copy; see data-source/battlepass.template.xlsx
-# and scripts/generate-template.js.
+# clones this needs to fill in their own copy; see
+# data-source/battlepass.template.xlsx / .template.csv and
+# scripts/generate-template.js. (The real files actually live in
+# %APPDATA%\TarkovBattlepassTracker\, never in this folder — these two
+# entries are just a defensive backstop in case a real copy ever ends up
+# here anyway.)
 data-source/battlepass.xlsx
+data-source/battlepass.csv
 
 # Personal machine-specific shortcut(s), not portable to other machines.
 *.lnk

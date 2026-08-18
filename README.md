@@ -40,26 +40,26 @@ npm start
 
 ## Setting up your own data
 
-**This is the one manual step.** Document costs per Battlepass level are personal — two players can need completely different document *types* for the exact same reward, even though the reward's total document count is the same for everyone. Because of that, there's no pre-filled `battlepass.xlsx` shipped with this app; you build your own from a blank template.
+**This is the one manual step.** Document costs per Battlepass level are personal — two players can need completely different document *types* for the exact same reward, even though the reward's total document count is the same for everyone. Because of that, there's no pre-filled spreadsheet shipped with this app; you build your own from a blank template.
 
-1. Launch the app. With no data yet, the Main tab offers a **Copy starter template** button — click it. This copies the blank template to `%APPDATA%\TarkovBattlepassTracker\battlepass.xlsx` — a real, editable file outside the app itself, so it survives updates/reinstalls.
-2. Open that file in Excel/LibreOffice/Google Sheets. Every reward's page, name, and its overall `Total Documents` count are already filled in — only the per-document-type columns are blank.
+1. Launch the app. With no data yet, the Main tab offers two buttons: **Copy starter template (Excel)** and **Copy starter template (CSV)**. Pick whichever you can actually open — CSV needs no spreadsheet software at all, it opens and edits fine in Notepad or any text editor. Either one copies the blank template to `%APPDATA%\TarkovBattlepassTracker\battlepass.xlsx` (or `.csv`) — a real, editable file outside the app itself, so it survives updates/reinstalls.
+2. Open that file. Every reward's page, name, and its overall `Total Documents` count are already filled in — only the per-document-type columns are blank.
 3. Fill in your own numbers per document type, per reward. Each row's document-type columns should add up to that row's `Total Documents` value — if they don't, you've mistyped something.
-4. In the app, open **Settings** → **Import from battlepass.xlsx**. Re-run this any time you edit the spreadsheet; it's the intended workflow, easier than hand-editing levels in the app itself.
+4. In the app, open **Settings** → **Import spreadsheet**. Re-run this any time you edit the file; it's the intended workflow, easier than hand-editing levels in the app itself. **Open spreadsheet** right next to it opens whichever one you're using, in whatever app Windows has associated with that file type.
 
 The importer checks your math for you: if a row's document-type columns don't add up to its `Total Documents` value, or the grand total across every level doesn't land on the expected season total, you'll get a warning listing exactly which rows are off.
 
-If you're building from source and want a fresh, correctly-structured template (e.g. after adding new levels to your real sheet), regenerate `data-source/battlepass.template.xlsx` — the one the app copies from — with:
+If you're building from source and want fresh, correctly-structured templates (e.g. after adding new levels to your real sheet), regenerate both `data-source/battlepass.template.xlsx` and `.template.csv` — the ones the app copies from — with:
 
 ```bash
 node scripts/generate-template.js
 ```
 
-That reads from `data-source/battlepass.xlsx` in the project folder, which is a separate thing from your actual in-use spreadsheet in `%APPDATA%` — it's only relevant if you're maintaining/extending the season's level data itself, not for normal use.
+That reads from your actual in-use spreadsheet in `%APPDATA%` (falling back to the legacy in-project copy if you haven't launched the updated app yet) — only relevant if you're maintaining/extending the season's level data itself, not for normal use.
 
 ## Data storage
 
-Everything personal to you — `data.json` (owned document counts, claimed rewards, settings) and `battlepass.xlsx` (your document costs) — lives in `%APPDATA%\TarkovBattlepassTracker\`, outside the app's own install/source directory entirely. Delete `data.json` to reset your progress to a clean slate without touching your spreadsheet; delete the whole folder to reset everything, spreadsheet included.
+Everything personal to you — `data.json` (owned document counts, claimed rewards, settings) and `battlepass.xlsx` or `battlepass.csv` (your document costs, whichever format you picked) — lives in `%APPDATA%\TarkovBattlepassTracker\`, outside the app's own install/source directory entirely. Delete `data.json` to reset your progress to a clean slate without touching your spreadsheet; delete the whole folder to reset everything, spreadsheet included.
 
 ## Feedback / issues
 

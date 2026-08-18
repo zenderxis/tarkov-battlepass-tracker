@@ -1,5 +1,5 @@
-// Regenerates data-source/battlepass.template.xlsx from the real, live
-// battlepass.xlsx.
+// Regenerates data-source/battlepass.template.xlsx AND .template.csv from
+// the real, live battlepass.xlsx/.csv.
 //
 // Why this exists: the per-document-type breakdown on a level is personal —
 // two players can need different types of documents for the exact same
@@ -35,17 +35,24 @@ const { NON_DOC_COLUMNS } = require('../lib/xlsx-columns');
 
 // Prefers the real, live working copy in userData — the same location
 // Electron's app.getPath('userData') resolves to for this app (see
-// XLSX_SOURCE_PATH in main.js) — since that's where actual edits happen now
-// via the app's "Open battlepass.xlsx" button. Falls back to the legacy
-// in-project copy for anyone who hasn't launched the app since upgrading.
-const USERDATA_SOURCE = path.join(process.env.APPDATA || '', 'TarkovBattlepassTracker', 'battlepass.xlsx');
+// XLSX_SOURCE_PATH/CSV_SOURCE_PATH in main.js) — since that's where actual
+// edits happen now via the app's "Open spreadsheet" button. Checks .csv too
+// in case that's the format actually in use. Falls back to the legacy
+// in-project .xlsx copy for anyone who hasn't launched the app since
+// upgrading.
+const USERDATA_DIR = path.join(process.env.APPDATA || '', 'TarkovBattlepassTracker');
+const USERDATA_XLSX = path.join(USERDATA_DIR, 'battlepass.xlsx');
+const USERDATA_CSV = path.join(USERDATA_DIR, 'battlepass.csv');
 const LEGACY_SOURCE = path.join(__dirname, '..', 'data-source', 'battlepass.xlsx');
-const SOURCE = fs.existsSync(USERDATA_SOURCE) ? USERDATA_SOURCE : LEGACY_SOURCE;
-const OUTPUT = path.join(__dirname, '..', 'data-source', 'battlepass.template.xlsx');
+const SOURCE = fs.existsSync(USERDATA_XLSX) ? USERDATA_XLSX
+  : fs.existsSync(USERDATA_CSV) ? USERDATA_CSV
+  : LEGACY_SOURCE;
+const OUTPUT_XLSX = path.join(__dirname, '..', 'data-source', 'battlepass.template.xlsx');
+const OUTPUT_CSV = path.join(__dirname, '..', 'data-source', 'battlepass.template.csv');
 
 function main() {
   if (!fs.existsSync(SOURCE)) {
-    throw new Error(`No source spreadsheet found at either:\n  ${USERDATA_SOURCE}\n  ${LEGACY_SOURCE}`);
+    throw new Error(`No source spreadsheet found at any of:\n  ${USERDATA_XLSX}\n  ${USERDATA_CSV}\n  ${LEGACY_SOURCE}`);
   }
   const wb = XLSX.readFile(SOURCE);
   const sheetName = wb.SheetNames.includes('pvp') ? 'pvp' : wb.SheetNames[0];
@@ -70,10 +77,17 @@ function main() {
     });
   }
 
-  XLSX.writeFile(wb, OUTPUT);
+  XLSX.writeFile(wb, OUTPUT_XLSX);
+  // Same blanked-out workbook, written as CSV too — for anyone without
+  // Excel/LibreOffice/Sheets access, editable in any text editor. CSV has
+  // no formula concept, so a column like "Doc Count" bakes in as a plain
+  // static number here (0, since every cost feeding it was just blanked)
+  // rather than staying live the way it does in the .xlsx version.
+  XLSX.writeFile(wb, OUTPUT_CSV);
 
   console.log(`Source: ${SOURCE}`);
-  console.log(`Wrote ${OUTPUT}`);
+  console.log(`Wrote ${OUTPUT_XLSX}`);
+  console.log(`Wrote ${OUTPUT_CSV}`);
   console.log(`${rowCount} rows, ${docCols.length} document-type columns blanked: ${docCols.map((d) => d.name).join(', ')}`);
 }
 
