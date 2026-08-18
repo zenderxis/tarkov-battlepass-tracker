@@ -170,6 +170,7 @@ function wireStaticControls() {
     const result = await window.tracker.backupNow();
     if (result.backedUp) {
       alert(t(lang, 'settings.backupNowSuccess', { fileName: result.fileName }));
+      populateBackupSelect(); // so the new backup shows up in Restore immediately
     } else if (result.reason === 'no-data') {
       alert(t(lang, 'settings.backupNowNoData'));
     } else {
@@ -180,6 +181,21 @@ function wireStaticControls() {
   document.getElementById('open-backups-btn').addEventListener('click', async () => {
     const result = await window.tracker.openBackupsFolder();
     if (!result.opened) alert(`Couldn't open the backups folder: ${result.error || 'unknown error'}`);
+  });
+
+  // Restoring relaunches the whole app on success (see data:restoreBackup
+  // in main.js) — the awaited call below only ever actually resolves on
+  // failure, since the process exits before it would resolve otherwise.
+  document.getElementById('restore-backup-btn').addEventListener('click', async () => {
+    const lang = state.language || 'en';
+    const select = document.getElementById('restore-backup-select');
+    const fileName = select.value;
+    if (!fileName) return;
+    if (!confirm(t(lang, 'settings.restoreConfirm', { fileName }))) return;
+    const result = await window.tracker.restoreBackup(fileName);
+    if (result && !result.restored) {
+      alert(t(lang, 'settings.restoreError', { reason: result.reason || 'unknown error' }));
+    }
   });
 
   document.getElementById('check-updates-btn').addEventListener('click', async () => {
@@ -281,6 +297,38 @@ function renderClaimMode() {
 
 function setSettingsOpen(open) {
   document.getElementById('settings-overlay').classList.toggle('open', open);
+  if (open) populateBackupSelect();
+}
+
+// Fills the "Restore from backup" dropdown, newest first. Re-run whenever
+// Settings opens (see setSettingsOpen() above) and right after a manual
+// backup succeeds, so a just-created backup shows up without needing to
+// close and reopen Settings first.
+async function populateBackupSelect() {
+  const lang = state.language || 'en';
+  const select = document.getElementById('restore-backup-select');
+  const restoreBtn = document.getElementById('restore-backup-btn');
+  const backups = await window.tracker.listBackups();
+  select.innerHTML = '';
+
+  if (!backups.length) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = t(lang, 'settings.noBackupsYet');
+    select.appendChild(opt);
+    select.disabled = true;
+    restoreBtn.disabled = true;
+    return;
+  }
+
+  select.disabled = false;
+  restoreBtn.disabled = false;
+  backups.forEach((b) => {
+    const opt = document.createElement('option');
+    opt.value = b.fileName;
+    opt.textContent = new Date(b.mtimeMs).toLocaleString(lang);
+    select.appendChild(opt);
+  });
 }
 
 // Shown once, only on a genuinely fresh install — see main.js's loadData(),

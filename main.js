@@ -33,6 +33,13 @@ const CSV_SOURCE_PATH = path.join(app.getPath('userData'), 'battlepass.csv');
 // one copy of a user's progress/costs anywhere.
 const BACKUPS_DIR = path.join(app.getPath('userData'), 'backups');
 const MAX_BACKUPS = 20;
+// Matches both the current data-YYYY-MM-DDTHH-mm-ss.json format and the
+// older date-only data-YYYY-MM-DD.json format (from before manual backups
+// existed), so files from either era get counted/pruned/restored the same
+// way rather than the old ones silently piling up forever or being
+// unselectable. Also doubles as a path-traversal guard on IPC input — see
+// data:restoreBackup below.
+const BACKUP_FILENAME_RE = /^data-\d{4}-\d{2}-\d{2}(T\d{2}-\d{2}-\d{2})?\.json$/;
 // Where battlepass.xlsx used to live, back when this only ever ran from
 // source (`npm start`, no installer). migrateLegacyXlsx() below moves an
 // existing file from here to XLSX_SOURCE_PATH once, so upgrading from the
@@ -257,12 +264,8 @@ function backupNow() {
 
 function pruneOldBackups() {
   try {
-    // Matches both the current data-YYYY-MM-DDTHH-mm-ss.json format and the
-    // older date-only data-YYYY-MM-DD.json format (from before manual
-    // backups existed), so files from either era get counted and pruned
-    // together rather than the old ones silently piling up forever.
     const files = fs.readdirSync(BACKUPS_DIR)
-      .filter((f) => /^data-\d{4}-\d{2}-\d{2}(T\d{2}-\d{2}-\d{2})?\.json$/.test(f))
+      .filter((f) => BACKUP_FILENAME_RE.test(f))
       .sort(); // these filenames sort chronologically as plain strings
     const excess = files.length - MAX_BACKUPS;
     if (excess > 0) {
@@ -498,11 +501,8 @@ ipcMain.handle('shell:openXlsx', async () => {
 });
 
 // Opens the rolling-backup folder in Explorer (see maybeBackupBeforeSave()
-// above) — the recovery half of the automatic backup: if something goes
-// wrong (a bad edit, an accidental Full Reset), a user can come here, copy
-// the most recent data-YYYY-MM-DD.json over data.json themselves, and
-// reload. No in-app restore flow — this is meant as a rare last resort, not
-// a feature to build a UI around.
+// above) — for anyone who'd rather look at/copy the files by hand than use
+// the in-app "Restore from backup" picker below.
 ipcMain.handle('shell:openBackupsFolder', async () => {
   fs.mkdirSync(BACKUPS_DIR, { recursive: true });
   const err = await shell.openPath(BACKUPS_DIR);
@@ -510,6 +510,56 @@ ipcMain.handle('shell:openBackupsFolder', async () => {
 });
 
 ipcMain.handle('data:backupNow', () => backupNow());
+
+// Lists available backups, newest first — the renderer turns mtimeMs into a
+// locale-formatted date/time rather than parsing it back out of the
+// filename itself.
+ipcMain.handle('data:listBackups', () => {
+  try {
+    fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+    return fs.readdirSync(BACKUPS_DIR)
+      .filter((f) => BACKUP_FILENAME_RE.test(f))
+      .map((f) => ({ fileName: f, mtimeMs: fs.statSync(path.join(BACKUPS_DIR, f)).mtimeMs }))
+      .sort((a, b) => b.mtimeMs - a.mtimeMs);
+  } catch {
+    return [];
+  }
+});
+
+// Restores a chosen backup over data.json. Snapshots whatever's currently
+// there first (via the same backupFileName()/pruneOldBackups() machinery
+// used everywhere else) so restoring is itself undoable — then relaunches
+// the whole app (same app.relaunch()/app.exit() pattern as app:reload)
+// rather than trying to hot-swap in-memory renderer state, so every part
+// of the app reloads cleanly from the restored file. fileName is validated
+// against the exact expected filename shape before touching anything, both
+// to reject a bad selection and as a path-traversal guard on the string
+// coming over IPC.
+ipcMain.handle('data:restoreBackup', (e, fileName) => {
+  if (typeof fileName !== 'string' || !BACKUP_FILENAME_RE.test(fileName)) {
+    return { restored: false, reason: 'invalid-name' };
+  }
+  const backupPath = path.join(BACKUPS_DIR, fileName);
+  if (!fs.existsSync(backupPath)) return { restored: false, reason: 'not-found' };
+  try {
+    JSON.parse(fs.readFileSync(backupPath, 'utf8')); // validate before touching data.json
+  } catch {
+    return { restored: false, reason: 'invalid-json' };
+  }
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+      fs.copyFileSync(DATA_FILE, path.join(BACKUPS_DIR, backupFileName()));
+      pruneOldBackups();
+    }
+    fs.copyFileSync(backupPath, DATA_FILE);
+  } catch (err) {
+    return { restored: false, reason: 'error', error: err.message || String(err) };
+  }
+  app.relaunch();
+  app.exit(0);
+  return { restored: true }; // never actually seen — the process exits first
+});
 
 ipcMain.handle('map:open', () => {
   ensureMapView();

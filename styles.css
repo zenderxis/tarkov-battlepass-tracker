@@ -1436,6 +1436,41 @@ button.danger:hover {
   margin: 0;
 }
 
+/* Restore from backup — a <select> of available backups (populated by
+   populateBackupSelect() in renderer.js, newest first) plus a danger-styled
+   Restore button, right below the backup buttons above. .danger reused
+   as-is (same destructive-action styling as the Reset buttons below) since
+   restoring genuinely does overwrite current progress, even though a
+   pre-restore snapshot is taken automatically first. */
+.restore-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.restore-row select {
+  flex: 1;
+  min-width: 0;
+  background: #26282f;
+  border: 1px solid #33353d;
+  border-radius: 6px;
+  color: #e8e9ec;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.restore-row select:disabled {
+  cursor: not-allowed;
+  color: #6a6f7b;
+}
+
+.restore-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .reset-zone {
   padding-top: 14px;
   border-top: 1px solid #26282f;
