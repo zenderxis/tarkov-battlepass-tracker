@@ -1063,12 +1063,17 @@ function renderLevelEditor() {
   });
 }
 
+// Same icon-on-top + (−/count/+) stepper shape as the inventory sidebar's
+// buildSidebarDocRow(), so entering costs here feels like the same widget —
+// just setting a target number instead of an owned count. All 9 sit in one
+// non-wrapping row (see .cost-grid in styles.css), same as the sidebar's
+// document row.
 function buildLevelCostCell(level, type, onUpdate) {
   const cell = document.createElement('div');
   cell.className = 'cost-grid-cell';
 
   const icon = document.createElement('img');
-  icon.className = 'doc-type-icon-xs';
+  icon.className = 'doc-type-icon-md';
   icon.alt = '';
   const iconCandidates = docTypeIconCandidates(type);
   icon.src = iconCandidates[0];
@@ -1077,20 +1082,43 @@ function buildLevelCostCell(level, type, onUpdate) {
   icon.addEventListener('error', () => docTypeIconFallback(icon));
   attachDocTypeTooltip(icon, type);
 
-  const input = document.createElement('input');
-  input.type = 'number';
-  input.min = '0';
-  input.value = String(level.cost[type] || 0);
-  input.addEventListener('change', () => {
-    const n = Math.max(0, Number(input.value) || 0);
-    if (n > 0) level.cost[type] = n;
+  const setCost = (n) => {
+    const clamped = Math.max(0, Number(n) || 0);
+    if (clamped > 0) level.cost[type] = clamped;
     else delete level.cost[type];
     persist();
     onUpdate();
     renderPage(); // reflect the new cost on the tile/needs-widget immediately
+  };
+
+  const stepper = document.createElement('div');
+  stepper.className = 'stepper';
+
+  const minusBtn = document.createElement('button');
+  minusBtn.textContent = '−';
+  minusBtn.addEventListener('click', () => {
+    setCost((level.cost[type] || 0) - 1);
+    countInput.value = String(level.cost[type] || 0);
   });
 
-  cell.append(icon, input);
+  const countInput = document.createElement('input');
+  countInput.type = 'number';
+  countInput.min = '0';
+  countInput.value = String(level.cost[type] || 0);
+  countInput.addEventListener('change', () => {
+    setCost(countInput.value);
+    countInput.value = String(level.cost[type] || 0);
+  });
+
+  const plusBtn = document.createElement('button');
+  plusBtn.textContent = '+';
+  plusBtn.addEventListener('click', () => {
+    setCost((level.cost[type] || 0) + 1);
+    countInput.value = String(level.cost[type] || 0);
+  });
+
+  stepper.append(minusBtn, countInput, plusBtn);
+  cell.append(icon, stepper);
   return cell;
 }
 
