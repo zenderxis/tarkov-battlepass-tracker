@@ -2,6 +2,7 @@ const { app, BrowserWindow, BrowserView, ipcMain, screen, shell } = require('ele
 const path = require('path');
 const fs = require('fs');
 const XLSX = require('xlsx');
+const { NON_DOC_COLUMNS } = require('./lib/xlsx-columns');
 
 app.setName('TarkovBattlepassTracker');
 
@@ -151,11 +152,6 @@ function loadData() {
 function saveData(state) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 2));
 }
-
-// Columns outside this fixed set are treated as document-type columns, whatever
-// they're named — robust to header typos/renames (e.g. "PMC personell files")
-// and to the sheet gaining/losing document types.
-const NON_DOC_COLUMNS = new Set(['page', 'level', 'display name', 'item name', 'type', 'total documents']);
 
 // The document breakdown per level is personal — two players can need
 // different types for the same level — but Kord Breach's overall total is
