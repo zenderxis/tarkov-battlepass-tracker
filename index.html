@@ -38,6 +38,13 @@
       <span data-i18n="unclaim.modeBanner">Unclaim Mode is on — claimed rewards can be undone.</span>
       <button id="unclaim-mode-banner-off" class="claim-mode-banner-btn" data-i18n="common.turnOff">Turn off</button>
     </div>
+
+    <details class="settings-section season-summary" id="season-summary">
+      <summary data-i18n="main.seasonSummaryButton">Season-wide needs</summary>
+      <div class="season-summary-stats" id="season-summary-stats"></div>
+      <div class="season-summary-needs" id="season-summary-needs"></div>
+    </details>
+
     <div class="main-layout">
       <div class="main-primary">
         <div class="tile-section">
@@ -66,12 +73,23 @@
         </div>
 
         <div class="page-nav">
-          <button class="page-arrow" id="page-prev" aria-label="Previous page" data-i18n-aria="main.pagePrev">&#x2039;</button>
-          <div class="page-nav-label">
-            <span id="page-nav-title">Page 1 of 12</span>
-            <span id="page-nav-status" class="page-nav-status"></span>
+          <div class="page-tick-bar" id="page-tick-bar">
+            <!-- populated by renderer.js: one clickable tick per page -->
           </div>
-          <button class="page-arrow" id="page-next" aria-label="Next page" data-i18n-aria="main.pageNext">&#x203A;</button>
+          <div class="page-nav-controls">
+            <div class="page-nav-side">
+              <button class="page-arrow" id="page-prev" aria-label="Previous page" data-i18n-aria="main.pagePrev">&#x2039;</button>
+              <span class="page-nav-key">Q</span>
+            </div>
+            <div class="page-nav-label">
+              <span id="page-nav-title">Page 1 of 12</span>
+              <span id="page-nav-status" class="page-nav-status"></span>
+            </div>
+            <div class="page-nav-side">
+              <span class="page-nav-key">E</span>
+              <button class="page-arrow" id="page-next" aria-label="Next page" data-i18n-aria="main.pageNext">&#x203A;</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -151,6 +169,11 @@
         <span class="hint" data-i18n="settings.createSheetHint">No spreadsheet yet?</span>
         <button id="create-xlsx-btn" data-i18n="settings.createXlsxButton">Create (Excel)</button>
         <button id="create-csv-btn" data-i18n="settings.createCsvButton">Create (CSV)</button>
+      </div>
+
+      <div class="create-sheet-row">
+        <span class="hint" data-i18n="settings.backupsHint">Your progress is backed up automatically once a day, in case you ever need to undo a mistake.</span>
+        <button id="open-backups-btn" data-i18n="settings.openBackupsButton">Open backups folder</button>
       </div>
 
       <div class="reset-zone">

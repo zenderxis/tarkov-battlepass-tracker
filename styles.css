@@ -242,12 +242,80 @@ html, body {
   color: #6fce7f;
 }
 
+/* Column layout (tick bar on top, arrows/label row below) — still a single
+   fixed-height block below .tile-section regardless of viewedPage (12 ticks
+   and the same label structure every time), so it stays the position-lock
+   anchor described in the .tile-section comment above unchanged. */
 .page-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.page-tick-bar {
+  display: flex;
+  gap: 4px;
+  width: min(560px, 100%);
+}
+
+/* One button per page — a plain, unobtrusive bar until you look closely.
+   Passed pages fill solid accent; the current page gets the brighter
+   variant so it reads as "you are here" against the trail behind it;
+   pages ahead stay dim/untouched. Clicking any tick jumps straight to it. */
+.page-tick {
+  flex: 1 1 0;
+  height: 4px;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  background: #2c2f37;
+  cursor: pointer;
+  transition: filter 0.1s ease, transform 0.1s ease;
+}
+
+.page-tick:hover {
+  filter: brightness(1.4);
+  transform: scaleY(1.5);
+}
+
+.page-tick.passed {
+  background: var(--accent);
+}
+
+.page-tick.current {
+  background: var(--accent-bright);
+}
+
+.page-nav-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(560px, 100%);
+  gap: 18px;
+}
+
+.page-nav-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Small keyboard-hint badge next to each arrow — Q/E step pages, same
+   action as clicking the arrow beside it (see stepPage() in renderer.js). */
+.page-nav-key {
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 18px;
-  margin-top: 20px;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: #6a6f7b;
+  border: 1px solid #3a3d45;
+  border-radius: 4px;
 }
 
 /* border-radius: 8px, not 50% — every other control in the app (tiles,
@@ -1135,6 +1203,35 @@ html, body {
 .claim-mode-banner-btn:hover {
   background: #d9464b;
   color: white;
+}
+
+/* Season-wide needs — collapsed by default (see the plain <details>, no
+   [open] attribute, unlike the Levels editor's Settings section which is
+   deliberately open). Reuses .settings-section's box/summary chevron
+   styling and .page-need-item's chip look (see main.js's pageNeeds()
+   sibling, seasonNeeds(), for the aggregation logic) so it reads as the
+   same kind of widget as the per-page needs row above the tiles, just
+   scoped to the whole season instead of one page. */
+.season-summary {
+  margin-bottom: 16px;
+}
+
+.season-summary-stats {
+  font-size: 12px;
+  color: #9aa0ac;
+  padding-bottom: 10px;
+}
+
+.season-summary-needs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.season-summary-empty {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6fce7f;
 }
 
 .add-row {

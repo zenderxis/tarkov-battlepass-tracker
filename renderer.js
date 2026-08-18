@@ -89,14 +89,33 @@ function wireStaticControls() {
     if (e.target.id === 'settings-overlay') setSettingsOpen(false);
   });
 
-  // Escape closes Settings immediately, same as the X button and clicking
-  // the backdrop. No confirm — every edit in Settings already saves as it's
-  // made (see persist() calls throughout), so there's nothing to lose by
-  // closing, and whatever was changed stays changed either way.
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    if (!document.getElementById('settings-overlay').classList.contains('open')) return;
-    setSettingsOpen(false);
+    // Escape closes Settings immediately, same as the X button and clicking
+    // the backdrop. No confirm — every edit in Settings already saves as
+    // it's made (see persist() calls throughout), so there's nothing to
+    // lose by closing, and whatever was changed stays changed either way.
+    if (e.key === 'Escape') {
+      if (document.getElementById('settings-overlay').classList.contains('open')) {
+        setSettingsOpen(false);
+      }
+      return;
+    }
+
+    // Q/E step pages, mirroring the page-arrow buttons (see the "Q"/"E"
+    // hints printed right next to them in .page-nav). Guarded against
+    // firing while it'd interfere with actually typing: a focused text
+    // field (cost inputs, language search, etc. — "e" in particular is a
+    // valid character inside a number input, for scientific notation),
+    // Settings open (no page nav visible behind it), or the Map tab (no
+    // tiles to page through there).
+    const key = e.key.toLowerCase();
+    if (key !== 'q' && key !== 'e') return;
+    if (document.getElementById('settings-overlay').classList.contains('open')) return;
+    if (!document.getElementById('panel-main').classList.contains('active')) return;
+    const active = document.activeElement;
+    const tag = active && active.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (active && active.isContentEditable)) return;
+    stepPage(key === 'q' ? -1 : 1);
   });
 
   document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -126,6 +145,11 @@ function wireStaticControls() {
 
   document.getElementById('create-xlsx-btn').addEventListener('click', () => createStarterSheet('xlsx'));
   document.getElementById('create-csv-btn').addEventListener('click', () => createStarterSheet('csv'));
+
+  document.getElementById('open-backups-btn').addEventListener('click', async () => {
+    const result = await window.tracker.openBackupsFolder();
+    if (!result.opened) alert(`Couldn't open the backups folder: ${result.error || 'unknown error'}`);
+  });
 
   // Clears claims + owned counts only — levels, document types, and the
   // spreadsheet link stay exactly as they are, so this is "play through
@@ -422,6 +446,8 @@ function renderPage() {
   }
 
   renderPageNeeds(viewedPage);
+  renderTickBar(pages, idx);
+  renderSeasonSummary();
 
   const levels = levelsForPage(viewedPage);
   if (!levels.length) {
@@ -431,6 +457,26 @@ function renderPage() {
 
   grid.innerHTML = '';
   levels.forEach((level) => grid.appendChild(buildTile(level, unlocked)));
+}
+
+// One clickable tick per page (see .page-tick-bar in index.html) — passed
+// pages solid accent, the current page the brighter variant, pages ahead
+// left at the dim default. Clicking a tick jumps straight to it, same as
+// clicking a preview tile — including pages that are still locked, so this
+// doubles as a quick "jump ahead and look" the same way the previews do.
+function renderTickBar(pages, currentIdx) {
+  const bar = document.getElementById('page-tick-bar');
+  bar.innerHTML = '';
+  pages.forEach((pageNum, i) => {
+    const tick = document.createElement('button');
+    tick.className = 'page-tick' + (i < currentIdx ? ' passed' : i === currentIdx ? ' current' : '');
+    tick.title = `Page ${pageNum}`;
+    tick.addEventListener('click', () => {
+      viewedPage = pageNum;
+      renderPage();
+    });
+    bar.appendChild(tick);
+  });
 }
 
 // Totals still needed to finish the current page: for each document type, sum
@@ -453,6 +499,61 @@ function pageNeeds(pageNum) {
     if (remaining > 0) deficits[type] = remaining;
   });
   return deficits;
+}
+
+// Same sum-then-subtract-owned-once approach as pageNeeds(), just across
+// every unclaimed level in the whole season instead of one page — locked or
+// not, since this is meant for planning farming runs further ahead than
+// just the page you're currently looking at.
+function seasonNeeds() {
+  const totalNeeded = {};
+  state.levels.forEach((level) => {
+    if (isClaimed(level.id)) return;
+    Object.entries(level.cost).forEach(([type, need]) => {
+      totalNeeded[type] = (totalNeeded[type] || 0) + need;
+    });
+  });
+  const deficits = {};
+  Object.entries(totalNeeded).forEach(([type, total]) => {
+    const remaining = Math.max(0, total - ownedCount(sidebarMode, type));
+    if (remaining > 0) deficits[type] = remaining;
+  });
+  return deficits;
+}
+
+// Collapsed <details> on the Main tab (see .season-summary in index.html) —
+// called from renderPage() so it stays in sync with claims, sidebarMode, and
+// owned-count changes the same way the per-page needs widget already does.
+function renderSeasonSummary() {
+  const statsEl = document.getElementById('season-summary-stats');
+  const needsEl = document.getElementById('season-summary-needs');
+  const lang = state.language || 'en';
+
+  const unclaimed = state.levels.filter((l) => !isClaimed(l.id));
+  if (!unclaimed.length) {
+    statsEl.textContent = t(lang, 'main.seasonSummaryAllClaimed');
+    needsEl.innerHTML = '';
+    return;
+  }
+
+  statsEl.textContent = t(lang, 'main.seasonSummaryStats', { remaining: unclaimed.length, total: state.levels.length });
+
+  const deficits = seasonNeeds();
+  const orderedTypes = orderedSidebarDocTypes().filter((docType) => deficits[docType] > 0);
+  needsEl.innerHTML = '';
+
+  if (!orderedTypes.length) {
+    const missingCosts = unclaimed.some((l) => Object.keys(l.cost || {}).length === 0);
+    const note = document.createElement('div');
+    note.className = 'season-summary-empty';
+    note.textContent = t(lang, missingCosts ? 'main.seasonSummaryMissingCosts' : 'main.seasonSummaryAllMet');
+    needsEl.appendChild(note);
+    return;
+  }
+
+  orderedTypes.forEach((typeName) => {
+    needsEl.appendChild(buildPageNeedItem(typeName, deficits[typeName]));
+  });
 }
 
 // .page-needs (the icon-chip row) stays visible and reserves its full height
@@ -728,15 +829,32 @@ function buildSidebarDocRow(modeKey, typeName) {
   icon.addEventListener('error', () => docTypeIconFallback(icon));
   attachDocTypeTooltip(icon, typeName);
 
+  // persist() + renderPage() only here — NOT renderAll()/renderSidebar().
+  // Rebuilding the sidebar's own list (list.innerHTML = '') on every
+  // keystroke would destroy and recreate this row's elements out from under
+  // an in-progress Tab keypress, breaking the "Tab moves straight to the
+  // next document type's field" behavior below (the browser's already-
+  // resolved focus target would vanish mid-navigation). renderPage() alone
+  // still keeps reward tile cost counts/claim buttons in sync, since those
+  // are the only other things that read owned counts.
+  const setOwned = (n) => {
+    setOwnedCount(modeKey, typeName, n);
+    persist();
+    renderPage();
+  };
+
   const stepper = document.createElement('div');
   stepper.className = 'stepper';
 
+  // tabindex="-1" takes +/- out of the Tab order (still fully clickable) so
+  // Tab from one document type's field goes straight to the next type's
+  // field instead of stopping on the + button first.
   const minusBtn = document.createElement('button');
   minusBtn.textContent = '−';
+  minusBtn.tabIndex = -1;
   minusBtn.addEventListener('click', () => {
-    setOwnedCount(modeKey, typeName, ownedCount(modeKey, typeName) - 1);
-    persist();
-    renderAll();
+    setOwned(ownedCount(modeKey, typeName) - 1);
+    countInput.value = String(ownedCount(modeKey, typeName));
   });
 
   const countInput = document.createElement('input');
@@ -744,17 +862,16 @@ function buildSidebarDocRow(modeKey, typeName) {
   countInput.min = '0';
   countInput.value = String(ownedCount(modeKey, typeName));
   countInput.addEventListener('change', () => {
-    setOwnedCount(modeKey, typeName, countInput.value);
-    persist();
-    renderAll();
+    setOwned(countInput.value);
+    countInput.value = String(ownedCount(modeKey, typeName));
   });
 
   const plusBtn = document.createElement('button');
   plusBtn.textContent = '+';
+  plusBtn.tabIndex = -1;
   plusBtn.addEventListener('click', () => {
-    setOwnedCount(modeKey, typeName, ownedCount(modeKey, typeName) + 1);
-    persist();
-    renderAll();
+    setOwned(ownedCount(modeKey, typeName) + 1);
+    countInput.value = String(ownedCount(modeKey, typeName));
   });
 
   stepper.append(minusBtn, countInput, plusBtn);

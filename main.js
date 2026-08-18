@@ -26,6 +26,11 @@ const XLSX_SOURCE_PATH = path.join(app.getPath('userData'), 'battlepass.xlsx');
 // of resolveSheetSourcePath() needs to know or care which one a given user
 // picked.
 const CSV_SOURCE_PATH = path.join(app.getPath('userData'), 'battlepass.csv');
+// Rolling daily backups of data.json — see maybeBackupBeforeSave() below.
+// Cheap insurance against a bad edit or an accidental Full Reset, since
+// there's otherwise exactly one copy of a user's progress/costs anywhere.
+const BACKUPS_DIR = path.join(app.getPath('userData'), 'backups');
+const MAX_BACKUPS = 14;
 // Where battlepass.xlsx used to live, back when this only ever ran from
 // source (`npm start`, no installer). migrateLegacyXlsx() below moves an
 // existing file from here to XLSX_SOURCE_PATH once, so upgrading from the
@@ -186,7 +191,42 @@ function loadData() {
 }
 
 function saveData(state) {
+  maybeBackupBeforeSave();
   fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 2));
+}
+
+// saveData() runs on nearly every keystroke (persist() in renderer.js), so
+// backing up on every call would flood the folder with near-duplicates —
+// instead, at most once per calendar day, snapshot whatever's currently on
+// disk (the end state of the last save before today) before it gets
+// overwritten. Best-effort: a backup failure should never block an actual
+// save, so errors are swallowed rather than surfaced.
+function maybeBackupBeforeSave() {
+  if (!fs.existsSync(DATA_FILE)) return;
+  const dateStamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const backupPath = path.join(BACKUPS_DIR, `data-${dateStamp}.json`);
+  if (fs.existsSync(backupPath)) return;
+  try {
+    fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+    fs.copyFileSync(DATA_FILE, backupPath);
+    pruneOldBackups();
+  } catch {
+    // Best-effort — see comment above.
+  }
+}
+
+function pruneOldBackups() {
+  try {
+    const files = fs.readdirSync(BACKUPS_DIR)
+      .filter((f) => /^data-\d{4}-\d{2}-\d{2}\.json$/.test(f))
+      .sort(); // ISO date filenames sort chronologically as plain strings
+    const excess = files.length - MAX_BACKUPS;
+    if (excess > 0) {
+      files.slice(0, excess).forEach((f) => fs.unlinkSync(path.join(BACKUPS_DIR, f)));
+    }
+  } catch {
+    // Best-effort — see maybeBackupBeforeSave() comment above.
+  }
 }
 
 // The document breakdown per level is personal — two players can need
@@ -410,6 +450,18 @@ ipcMain.handle('shell:openXlsx', async () => {
   const sourcePath = resolveSheetSourcePath();
   if (!sourcePath) return { opened: false, reason: 'no-file' };
   const err = await shell.openPath(sourcePath);
+  return err ? { opened: false, reason: 'shell-error', error: err } : { opened: true };
+});
+
+// Opens the rolling-backup folder in Explorer (see maybeBackupBeforeSave()
+// above) — the recovery half of the automatic backup: if something goes
+// wrong (a bad edit, an accidental Full Reset), a user can come here, copy
+// the most recent data-YYYY-MM-DD.json over data.json themselves, and
+// reload. No in-app restore flow — this is meant as a rare last resort, not
+// a feature to build a UI around.
+ipcMain.handle('shell:openBackupsFolder', async () => {
+  fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+  const err = await shell.openPath(BACKUPS_DIR);
   return err ? { opened: false, reason: 'shell-error', error: err } : { opened: true };
 });
 
