@@ -64,7 +64,7 @@
       "provider": "github",
       "owner": "zenderxis",
       "repo": "tarkov-battlepass-tracker",
-      "draft": false
+      "releaseType": "release"
     }
   }
 }
