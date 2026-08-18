@@ -17,7 +17,13 @@ Not affiliated with Battlestate Games. "Escape from Tarkov" and "Battlepass" are
 
 ## Getting started
 
-Requires [Node.js](https://nodejs.org/) (which includes npm).
+### Windows installer (recommended)
+
+Download the latest installer from the [Releases page](https://github.com/zenderxis/tarkov-battlepass-tracker/releases/latest), run it, and go. It sets up Start Menu and Desktop shortcuts for you — no Node.js, no command line.
+
+### Building from source
+
+For contributors, or if you'd rather not run a downloaded installer. Requires [Node.js](https://nodejs.org/) (which includes npm).
 
 ```bash
 git clone https://github.com/zenderxis/tarkov-battlepass-tracker.git
@@ -28,30 +34,32 @@ npm start
 
 `npm install` pulls down Electron the first time, which takes a minute or two. After that, `npm start` launches the app directly.
 
-### Desktop shortcut (Windows)
+**Desktop shortcut**: right-click `launch.vbs` → **Send to** → **Desktop (create shortcut)** for a shortcut that launches the app with no console window behind it. `start.bat` does the same but leaves a terminal open, useful if something's going wrong and you want to see the output.
 
-Right-click `launch.vbs` → **Send to** → **Desktop (create shortcut)** for a shortcut that launches the app with no console window behind it. `start.bat` does the same but leaves a terminal open, useful if something's going wrong and you want to see the output.
+**Building your own installer**: `npm run dist` (Windows only) produces `dist/Tarkov Battlepass Tracker Setup <version>.exe` via [electron-builder](https://www.electron.build/). `npm run pack` builds an unpacked app folder for a quicker sanity check without generating the full installer.
 
 ## Setting up your own data
 
-**This is the one manual step.** Document costs per Battlepass level are personal — two players can need completely different document *types* for the exact same reward, even though the reward's total document count is the same for everyone. Because of that, there's no pre-filled `battlepass.xlsx` shipped with this repo; you build your own from a blank template.
+**This is the one manual step.** Document costs per Battlepass level are personal — two players can need completely different document *types* for the exact same reward, even though the reward's total document count is the same for everyone. Because of that, there's no pre-filled `battlepass.xlsx` shipped with this app; you build your own from a blank template.
 
-1. Launch the app. With no data yet, the Main tab offers a **Copy starter template** button — click it. (Or manually copy `data-source/battlepass.template.xlsx` to `data-source/battlepass.xlsx`.)
-2. Open `data-source/battlepass.xlsx` in Excel/LibreOffice/Google Sheets. Every reward's page, name, and its overall `Total Documents` count are already filled in — only the per-document-type columns are blank.
+1. Launch the app. With no data yet, the Main tab offers a **Copy starter template** button — click it. This copies the blank template to `%APPDATA%\TarkovBattlepassTracker\battlepass.xlsx` — a real, editable file outside the app itself, so it survives updates/reinstalls.
+2. Open that file in Excel/LibreOffice/Google Sheets. Every reward's page, name, and its overall `Total Documents` count are already filled in — only the per-document-type columns are blank.
 3. Fill in your own numbers per document type, per reward. Each row's document-type columns should add up to that row's `Total Documents` value — if they don't, you've mistyped something.
 4. In the app, open **Settings** → **Import from battlepass.xlsx**. Re-run this any time you edit the spreadsheet; it's the intended workflow, easier than hand-editing levels in the app itself.
 
 The importer checks your math for you: if a row's document-type columns don't add up to its `Total Documents` value, or the grand total across every level doesn't land on the expected season total, you'll get a warning listing exactly which rows are off.
 
-If you ever need a fresh, correctly-structured template (e.g. after adding new levels to your real sheet), regenerate it with:
+If you're building from source and want a fresh, correctly-structured template (e.g. after adding new levels to your real sheet), regenerate `data-source/battlepass.template.xlsx` — the one the app copies from — with:
 
 ```bash
 node scripts/generate-template.js
 ```
 
+That reads from `data-source/battlepass.xlsx` in the project folder, which is a separate thing from your actual in-use spreadsheet in `%APPDATA%` — it's only relevant if you're maintaining/extending the season's level data itself, not for normal use.
+
 ## Data storage
 
-Your progress — owned document counts, claimed rewards, settings — is saved to `%APPDATA%\TarkovBattlepassTracker\data.json`, outside this folder entirely. Delete that file to reset the app to a clean slate without touching your `battlepass.xlsx`.
+Everything personal to you — `data.json` (owned document counts, claimed rewards, settings) and `battlepass.xlsx` (your document costs) — lives in `%APPDATA%\TarkovBattlepassTracker\`, outside the app's own install/source directory entirely. Delete `data.json` to reset your progress to a clean slate without touching your spreadsheet; delete the whole folder to reset everything, spreadsheet included.
 
 ## Feedback / issues
 
@@ -62,6 +70,7 @@ Use the **Feedback** button in Settings, or open an issue directly on this repo.
 - `EXPECTED_SEASON_TOTAL` in `main.js` is hardcoded to 501 for the Kord Breach season's document-total sanity check — update it if a future season's total is different.
 - If `tarkovdocsmap.com` changes URL or goes down, update `MAP_URL` in `main.js`.
 - Document-type map tooltips (`DOC_TYPE_MAPS` in `renderer.js`) are English-only regardless of the selected UI language — see the scope note at the top of `i18n.js`.
+- If the app icon (`data-source/app_resources/black_div.ico`) ever needs regenerating from new source art, `node scripts/generate-icon.js` rebuilds it from `black_div.png` at every size Windows actually needs (16 up to 256) — a plain single-size `.ico` will make `npm run dist` fail.
 
 ## Credits
 

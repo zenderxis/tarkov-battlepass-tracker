@@ -1,6 +1,10 @@
 # Dependencies (regenerate with `npm install`)
 node_modules/
 
+# electron-builder output (installers, unpacked build) — built with
+# `npm run dist`, not something to commit; see GitHub Releases instead.
+dist/
+
 # Your real Battlepass data — personal to you, not shared. Everyone who
 # clones this needs to fill in their own copy; see data-source/battlepass.template.xlsx
 # and scripts/generate-template.js.

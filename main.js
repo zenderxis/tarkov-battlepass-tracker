@@ -6,7 +6,20 @@ const XLSX = require('xlsx');
 app.setName('TarkovBattlepassTracker');
 
 const DATA_FILE = path.join(app.getPath('userData'), 'data.json');
-const XLSX_SOURCE_PATH = path.join(__dirname, 'data-source', 'battlepass.xlsx');
+// The real, filled-in battlepass.xlsx has to live somewhere genuinely
+// writable at runtime — userData, same as data.json — not inside the app's
+// own install directory. A packaged, installed app's own directory is
+// typically read-only (bundled into an asar archive, or just a location a
+// standard user account shouldn't be writing into), so anything living
+// there can only ever be read, never edited-and-reimported the way this
+// file needs to be. The *template* is fine to stay bundled (read-only is
+// all it ever needs).
+const XLSX_SOURCE_PATH = path.join(app.getPath('userData'), 'battlepass.xlsx');
+// Where battlepass.xlsx used to live, back when this only ever ran from
+// source (`npm start`, no installer). migrateLegacyXlsx() below moves an
+// existing file from here to XLSX_SOURCE_PATH once, so upgrading from the
+// old layout doesn't lose anyone's already-filled-in document counts.
+const LEGACY_XLSX_SOURCE_PATH = path.join(__dirname, 'data-source', 'battlepass.xlsx');
 const XLSX_TEMPLATE_PATH = path.join(__dirname, 'data-source', 'battlepass.template.xlsx');
 const APP_ICON_PATH = path.join(__dirname, 'data-source', 'app_resources', 'black_div.ico');
 const XLSX_SHEET_NAME = 'pvp'; // misleadingly named — this one table applies to all three modes
@@ -308,6 +321,7 @@ ipcMain.handle('data:xlsxSourceExists', () => fs.existsSync(XLSX_SOURCE_PATH));
 ipcMain.handle('data:copyTemplateXlsx', () => {
   if (fs.existsSync(XLSX_SOURCE_PATH)) return { copied: false, reason: 'already-exists' };
   if (!fs.existsSync(XLSX_TEMPLATE_PATH)) return { copied: false, reason: 'no-template' };
+  fs.mkdirSync(path.dirname(XLSX_SOURCE_PATH), { recursive: true });
   fs.copyFileSync(XLSX_TEMPLATE_PATH, XLSX_SOURCE_PATH);
   return { copied: true };
 });
@@ -348,5 +362,19 @@ ipcMain.handle('win:maximize', () => {
 });
 ipcMain.handle('win:close', () => mainWindow.close());
 
-app.whenReady().then(createWindow);
+// One-time upgrade path from the pre-installer layout (running from source,
+// battlepass.xlsx sitting in data-source/ next to the code) to the new one
+// (userData, alongside data.json). Never overwrites — if something's
+// already at the new location, this is a no-op.
+function migrateLegacyXlsx() {
+  if (fs.existsSync(XLSX_SOURCE_PATH)) return;
+  if (!fs.existsSync(LEGACY_XLSX_SOURCE_PATH)) return;
+  fs.mkdirSync(path.dirname(XLSX_SOURCE_PATH), { recursive: true });
+  fs.copyFileSync(LEGACY_XLSX_SOURCE_PATH, XLSX_SOURCE_PATH);
+}
+
+app.whenReady().then(() => {
+  migrateLegacyXlsx();
+  createWindow();
+});
 app.on('window-all-closed', () => app.quit());
