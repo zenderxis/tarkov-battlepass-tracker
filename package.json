@@ -63,7 +63,8 @@
     "publish": {
       "provider": "github",
       "owner": "zenderxis",
-      "repo": "tarkov-battlepass-tracker"
+      "repo": "tarkov-battlepass-tracker",
+      "draft": false
     }
   }
 }
