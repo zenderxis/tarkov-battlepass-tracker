@@ -1,0 +1,19 @@
+# Dependencies (regenerate with `npm install`)
+node_modules/
+
+# Your real Battlepass data — personal to you, not shared. Everyone who
+# clones this needs to fill in their own copy; see data-source/battlepass.template.xlsx
+# and scripts/generate-template.js.
+data-source/battlepass.xlsx
+
+# Personal machine-specific shortcut(s), not portable to other machines.
+*.lnk
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Claude Code's running dev-notes file for this project — a session-by-session
+# log of requests and changes, useful for picking up work again but not meant
+# for a public repo (long, informal, not written for an audience).
+CLAUDE.md

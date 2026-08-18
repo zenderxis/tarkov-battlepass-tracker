@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Tarkov Battlepass Tracker</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="titlebar">
+  <div class="titlebar-drag">
+    <span class="titlebar-title" data-i18n="app.title">Tarkov Battlepass Tracker &mdash; Kord Breach</span>
+  </div>
+  <div class="titlebar-controls">
+    <button class="win-btn" id="btn-reload" title="Reload app (picks up new changes)" data-i18n-title="titlebar.reload">&#xE72C;</button>
+    <button class="win-btn" id="btn-settings" title="Settings" data-i18n-title="titlebar.settings">&#xE713;</button>
+    <button class="win-btn" id="btn-min" title="Minimize" data-i18n-title="titlebar.minimize">&#xE921;</button>
+    <button class="win-btn" id="btn-max" title="Maximize" data-i18n-title="titlebar.maximize">&#xE922;</button>
+    <button class="win-btn win-btn-close" id="btn-close" title="Close" data-i18n-title="titlebar.close">&#xE8BB;</button>
+  </div>
+</div>
+
+<div class="tabnav">
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="main" data-i18n="tab.main">Main</button>
+    <button class="tab-btn" data-tab="map" data-i18n="tab.map">Map</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <section class="panel active" id="panel-main">
+    <div class="claim-mode-banner" id="claim-mode-banner">
+      <span data-i18n="claim.modeBanner">Claim Mode is on — claims won't require or deduct documents.</span>
+      <button id="claim-mode-banner-off" class="claim-mode-banner-btn" data-i18n="common.turnOff">Turn off</button>
+    </div>
+    <div class="claim-mode-banner" id="unclaim-mode-banner">
+      <span data-i18n="unclaim.modeBanner">Unclaim Mode is on — claimed rewards can be undone.</span>
+      <button id="unclaim-mode-banner-off" class="claim-mode-banner-btn" data-i18n="common.turnOff">Turn off</button>
+    </div>
+    <div class="main-layout">
+      <div class="main-primary">
+        <div class="tile-section">
+          <h3 class="page-needs-heading" id="page-needs-heading" data-i18n="main.pageNeedsHeading">Documents needed to finish page</h3>
+          <div class="page-needs" id="page-needs">
+            <!-- populated by renderer.js: totals still needed to finish this page -->
+          </div>
+
+          <div class="tile-row" id="tile-row">
+            <div class="tile-row-rail tile-row-rail-prev">
+              <button class="page-side-arrow page-side-arrow-prev" id="page-prev-side" aria-label="Previous page" data-i18n-aria="main.pagePrev">&#x2039;</button>
+            </div>
+            <div class="tile-preview tile-preview-prev" id="tile-preview-prev">
+              <!-- populated by renderer.js: tail end of the previous page, faded -->
+            </div>
+            <div class="tile-grid" id="tile-grid">
+              <!-- populated by renderer.js -->
+            </div>
+            <div class="tile-preview tile-preview-next" id="tile-preview-next">
+              <!-- populated by renderer.js: start of the next page, faded -->
+            </div>
+            <div class="tile-row-rail tile-row-rail-next">
+              <button class="page-side-arrow page-side-arrow-next" id="page-next-side" aria-label="Next page" data-i18n-aria="main.pageNext">&#x203A;</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="page-nav">
+          <button class="page-arrow" id="page-prev" aria-label="Previous page" data-i18n-aria="main.pagePrev">&#x2039;</button>
+          <div class="page-nav-label">
+            <span id="page-nav-title">Page 1 of 12</span>
+            <span id="page-nav-status" class="page-nav-status"></span>
+          </div>
+          <button class="page-arrow" id="page-next" aria-label="Next page" data-i18n-aria="main.pageNext">&#x203A;</button>
+        </div>
+      </div>
+
+      <aside class="main-sidebar" id="main-sidebar">
+        <div class="sidebar-mode-tabs" id="sidebar-mode-tabs">
+          <!-- populated by renderer.js -->
+        </div>
+        <div class="sidebar-body">
+          <div class="sidebar-doc-list" id="sidebar-doc-list">
+            <!-- populated by renderer.js -->
+          </div>
+        </div>
+      </aside>
+    </div>
+
+  </section>
+
+  <section class="panel" id="panel-map">
+    <div class="map-placeholder">
+      <p data-i18n="map.placeholder">Embedded document map loads here.</p>
+      <p class="map-source" data-i18n="map.source">Source: tarkovdocsmap.com</p>
+    </div>
+  </section>
+
+  <div class="settings-overlay" id="settings-overlay">
+    <div class="settings-panel">
+      <div class="settings-header">
+        <h2 data-i18n="settings.title">Settings</h2>
+        <button class="win-btn" id="settings-close" title="Close settings" aria-label="Close settings" data-i18n-title="settings.closeAria" data-i18n-aria="settings.closeAria">&#xE8BB;</button>
+      </div>
+
+      <div class="settings-topbar">
+        <div class="language-picker">
+          <label for="language-select" data-i18n="settings.language">Language</label>
+          <select id="language-select"><!-- populated by renderer.js from LANGUAGES --></select>
+        </div>
+        <button id="feedback-btn" data-i18n="settings.feedback">Feedback</button>
+      </div>
+
+      <div class="claim-mode-row">
+        <div class="claim-mode-info">
+          <div class="claim-mode-title" data-i18n="settings.claimModeTitle">Claim Mode</div>
+          <div class="hint" data-i18n="settings.claimModeHint">When on, claiming any reward skips the document-cost check entirely — nothing is required or deducted. An override for corrections, not normal play.</div>
+        </div>
+        <button id="claim-mode-toggle" class="toggle-btn">Off</button>
+      </div>
+
+      <div class="claim-mode-row">
+        <div class="claim-mode-info">
+          <div class="claim-mode-title" data-i18n="settings.unclaimModeTitle">Unclaim Mode</div>
+          <div class="hint" data-i18n="settings.unclaimModeHint">When off, the Unclaim button doesn't show up on claimed rewards at all, so a claim can't be undone by accident. Turn this on to unclaim something (and refund its documents, unless it was claimed via Claim Mode).</div>
+        </div>
+        <button id="unclaim-mode-toggle" class="toggle-btn">Off</button>
+      </div>
+
+      <div class="tiers-toolbar">
+        <button id="import-xlsx-btn" data-i18n="settings.importButton">Import from battlepass.xlsx</button>
+        <span class="hint" data-i18n="settings.importHint">Each level has its own standalone document cost (not cumulative with other levels), shared across all game modes. Editing <code>battlepass.xlsx</code> directly and re-importing is usually easier than hand-editing here.</span>
+      </div>
+
+      <details class="settings-section">
+        <summary data-i18n="settings.docTypesSummary">Document Types</summary>
+        <div class="add-row">
+          <input type="text" id="new-doc-type" placeholder="New document type name" data-i18n-placeholder="settings.newDocTypePlaceholder" />
+          <button id="add-doc-type-btn" data-i18n="settings.addDocTypeButton">Add Document Type</button>
+        </div>
+        <div class="doc-type-name-list" id="doc-type-name-list">
+          <!-- populated by renderer.js -->
+        </div>
+      </details>
+
+      <details class="settings-section">
+        <summary data-i18n="settings.levelsSummary">Levels</summary>
+        <div class="tier-editor-list" id="level-editor-list">
+          <!-- populated by renderer.js -->
+        </div>
+
+        <h3 class="section-heading" data-i18n="settings.allLevelsHeading">All Levels</h3>
+        <div class="tier-list" id="level-status-list">
+          <!-- populated by renderer.js -->
+        </div>
+      </details>
+
+      <div class="credits-row" id="credits-row">
+        <span class="credits-text" id="credits-created-by">Created by Zenderxis</span>
+        <span class="credits-sep">·</span>
+        <span class="credits-text">Discord: Zenderxis</span>
+        <span class="credits-sep">·</span>
+        <a class="credits-text credits-link" id="credits-reddit" href="#">Reddit: u/Zenderxis</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="i18n.js"></script>
+<script src="renderer.js"></script>
+</body>
+</html>

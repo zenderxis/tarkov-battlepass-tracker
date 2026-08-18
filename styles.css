@@ -1,0 +1,1415 @@
+/* Bender — all weights/styles registered under one family name so normal CSS
+   (font-weight, font-style) picks the right file automatically: bold text
+   gets Bender-Bold, italic text gets Bender-Italic, bold+italic together
+   gets Bender-BoldItalic, everything else falls back to Bender (regular). */
+@font-face {
+  font-family: 'Bender';
+  src: url('data-source/bender/Jovanny Lemonad - Bender.otf');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Bender';
+  src: url('data-source/bender/Jovanny Lemonad - Bender-Italic.otf');
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Bender';
+  src: url('data-source/bender/Jovanny Lemonad - Bender-Light.otf');
+  font-weight: 300;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Bender';
+  src: url('data-source/bender/Jovanny Lemonad - Bender-LightItalic.otf');
+  font-weight: 300;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Bender';
+  src: url('data-source/bender/Jovanny Lemonad - Bender-Bold.otf');
+  font-weight: 700;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Bender';
+  src: url('data-source/bender/Jovanny Lemonad - Bender-BoldItalic.otf');
+  font-weight: 700;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Bender';
+  src: url('data-source/bender/Jovanny Lemonad - Bender-Black.otf');
+  font-weight: 900;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Bender';
+  src: url('data-source/bender/Jovanny Lemonad - Bender-BlackItalic.otf');
+  font-weight: 900;
+  font-style: italic;
+}
+
+:root {
+  --accent: #55bb9b;
+  --accent-hover: #6bcdb2;
+  --accent-bright: #7bdbc0;
+  --accent-text: #0b2e26;
+  --accent-bg-tint: #12332b;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Bender', -apple-system, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+}
+
+html, body {
+  height: 100%;
+  background-color: #14161a;
+  background-image: url('data-source/wallpaper.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  color: #e8e9ec;
+  overflow: hidden;
+}
+
+/* Titlebar */
+
+.titlebar {
+  height: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1b1d23;
+  -webkit-app-region: drag;
+  border-bottom: 1px solid #26282f;
+}
+
+.titlebar-drag {
+  padding-left: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.titlebar-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #9aa0ac;
+  letter-spacing: 0.3px;
+}
+
+.titlebar-controls {
+  display: flex;
+  -webkit-app-region: no-drag;
+}
+
+.win-btn {
+  width: 44px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  color: #9aa0ac;
+  cursor: pointer;
+  font-family: "Segoe MDL2 Assets", sans-serif;
+  font-size: 10px;
+}
+
+.win-btn:hover {
+  background: #2a2d35;
+}
+
+.win-btn-close:hover {
+  background: #d9464b;
+  color: white;
+}
+
+/* Tab nav */
+
+.tabnav {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1b1d23;
+  border-bottom: 1px solid #26282f;
+  padding: 0 14px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  height: 100%;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: #9aa0ac;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 14px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-btn:hover {
+  color: #e8e9ec;
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Content / panels */
+
+.content {
+  position: relative;
+  height: calc(100% - 84px);
+  overflow: hidden;
+}
+
+.panel {
+  display: none;
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px 24px 40px;
+}
+
+.panel.active {
+  display: block;
+}
+
+/* Main tab layout: primary content + inventory sidebar */
+
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 100%;
+}
+
+.main-primary {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Page navigator + reward tile grid */
+
+/* The ONLY flex: 1 zone in .main-primary — needs-heading + needs-widget +
+   tile-row all center together within whatever space this zone gets. Because
+   it's the sole flexible element, its own box height is always exactly
+   (main-primary's height − .page-nav's fixed height), which doesn't depend on
+   how big the tiles inside happen to render — so .page-nav, sitting right
+   after this zone as a plain sibling (not sharing a flex budget with it), is
+   locked to the same spot every time regardless of tile size. An earlier
+   version split this into two separate flex:1 zones (one above the tiles, one
+   below, each centering independently) to make the gaps on both sides
+   provably equal — but that meant .page-nav's zone also changed size
+   whenever the tiles did, so its position visibly drifted page to page.
+   Locking the position took priority over that gap-symmetry guarantee. */
+.tile-section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.page-needs-heading {
+  display: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: #e2565b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.page-needs-heading.complete {
+  color: #6fce7f;
+}
+
+.page-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 20px;
+}
+
+/* border-radius: 8px, not 50% — every other control in the app (tiles,
+   toggles, the panel itself) is a rounded square, and the fully circular
+   arrows were the one outlier that didn't match. */
+.page-arrow {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  border-radius: 8px;
+}
+
+.page-arrow:disabled {
+  color: #454850;
+  cursor: not-allowed;
+}
+
+.page-nav-label {
+  text-align: center;
+  min-width: 220px;
+}
+
+#page-nav-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.page-nav-status {
+  display: block;
+  font-size: 12px;
+  font-style: italic;
+  color: #6a6f7b;
+  margin-top: 2px;
+}
+
+/* align-self: stretch (not the align-items: center .tile-section normally
+   gives its children) so .tile-row claims .tile-section's full width. That's
+   what lets .tile-row-rail below do its job — see that comment for why. */
+.tile-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  gap: 20px;
+}
+
+/* Second, closer-to-hand pair of page arrows, sitting out toward the window
+   edges instead of down at .page-nav below the whole grid — same
+   stepPage() action as the .page-arrow pair.
+   These live inside .tile-row itself now (as flex: 1 1 0 "rail" children on
+   either end, each holding one arrow), not absolutely positioned against
+   some ancestor's box — two earlier attempts at that (anchored to .tile-row
+   directly, then to .tile-section) either drifted sideways per-page or only
+   approximated the tiles' actual vertical center. A rail with flex: 1 1 0
+   has no content-driven width of its own, so both rails always claim
+   exactly the leftover space on either side of the fixed-width preview
+   tiles + tile grid — which, since both rails grow equally, keeps that
+   inner group centered exactly like .tile-section's own centering did
+   before, while also meaning the rail (and the arrow inside it, positioned
+   with plain padding + justify-content, no absolute/transform needed) sits
+   at a fixed, page-independent distance from the window edge. And because
+   the arrow is a genuine flex child of .tile-row, .tile-row's own
+   align-items: center lines it up with the actual tile row's vertical
+   center — not an approximation of it. */
+.tile-row-rail {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.tile-row-rail-prev {
+  justify-content: flex-start;
+  padding-left: clamp(24px, 3vw, 60px);
+}
+
+.tile-row-rail-next {
+  justify-content: flex-end;
+  padding-right: clamp(24px, 3vw, 60px);
+}
+
+/* Sized up from the first pass (42px) — user flagged them as too small to
+   notice. Low resting opacity + a transparent fill still keeps them reading
+   as an unobtrusive edge affordance rather than a competing UI element,
+   just a bigger target now. */
+.page-side-arrow {
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  font-size: 26px;
+  line-height: 1;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid rgba(232, 233, 236, 0.15);
+  color: #e8e9ec;
+  opacity: 0.35;
+  flex-shrink: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.page-side-arrow:hover {
+  opacity: 0.9;
+  background: rgba(232, 233, 236, 0.08);
+}
+
+.page-side-arrow:disabled {
+  opacity: 0.12;
+  cursor: not-allowed;
+}
+
+/* flex: 0 0 auto (no grow, no shrink) — sized to exactly fit its fixed-size
+   .reward-tile children in one row, and never smaller than that. This is
+   what keeps every page's tiles on a single line: the previous flex: 1 1
+   auto let this shrink under space pressure, and once a row of fixed-size
+   tiles didn't fit, the browser wrapped the overflow tiles to a second line
+   instead of shrinking them (they're fixed-size too) — which is what made a
+   5-tile page split 4-and-1. Now .tile-grid claims the room it needs first;
+   the flanking .tile-preview columns (flex-shrink: 2, higher priority to
+   shrink) absorb the space pressure instead, shrinking or clipping behind
+   their fade mask before a single current-page tile would ever wrap. */
+.tile-grid {
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 0;
+  justify-content: center;
+  gap: 14px;
+}
+
+.tile-grid .empty-state {
+  color: #6a6f7b;
+  font-size: 13px;
+  padding: 6px 0;
+}
+
+.tile-grid .empty-state.onboarding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 420px;
+  text-align: center;
+}
+
+.empty-state.onboarding p {
+  line-height: 1.5;
+}
+
+/* Totals still needed to finish the current page — sums remaining deficits
+   (need minus owned, floored at 0) across every unclaimed tile on the page,
+   per document type, for whichever mode's tab is active in the sidebar. Only
+   types with a positive remaining amount show; the whole bar hides itself
+   (display: none, toggled in JS) when nothing's left to show. */
+/* Always flex (never display:none) with a reserved min-height matching one
+   row of .page-need-item, even when empty — so the tile row below doesn't
+   shift up when a page is fully claimed (no chips to show) vs. not. */
+.page-needs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  min-height: 84px;
+}
+
+.page-need-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  background: #1b1d23;
+  border: 2px solid #e2565b;
+  border-radius: 9px;
+  padding: 8px 10px 7px;
+}
+
+.page-need-icon {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.page-need-count {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e2565b;
+}
+
+/* Flanking previews of the adjacent pages' first/last 2 rewards (was 3, then
+   1, now 2 — the sidebar moving to a horizontal bottom bar freed up enough
+   width to afford this again). Equal fixed-basis width on both sides always
+   (populated or not) so the current page's tiles stay centered in the same
+   spot regardless of whether a preview shows anything — page 1's empty
+   prev-preview included. This wrapper can still shrink under real space
+   pressure (faster than .tile-grid, so the current page stays priority) but
+   its .preview-tile children are fixed-size now — shrinking the wrapper just
+   clips a partial tile behind the mask fade instead of shrinking the tile
+   itself, so preview tiles render at the same size on every page. */
+.tile-preview {
+  flex: 0 2 clamp(220px, 26vw, 420px);
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.tile-preview-prev {
+  justify-content: flex-end;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 85%);
+}
+
+.tile-preview-next {
+  justify-content: flex-start;
+  -webkit-mask-image: linear-gradient(to left, transparent, black 85%);
+}
+
+.preview-tile {
+  flex: 0 0 clamp(140px, 9vw, 200px);
+  min-width: 0;
+  background: #1b1d23;
+  border: 1px solid #26282f;
+  border-radius: 12px;
+  padding: 12px;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.preview-tile:hover {
+  opacity: 0.85;
+}
+
+.preview-tile-photo {
+  width: 100%;
+  aspect-ratio: 1;
+  background: #14161a;
+  border-radius: 5px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-tile-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 3px;
+}
+
+/* Fixed per-page (no grow, no shrink at any given viewport width) so every
+   reward tile on the current page renders at the same size regardless of
+   how many levels that page has (2 on the smallest pages, 6 on page 1) —
+   size depends only on window width, never on tile count. Uses clamp() with
+   a vw component (not a flat px) so that size also scales with the window
+   itself: a flat 220px looked right on the window width it was tuned
+   against but has no reason to be the right size on a much narrower or
+   much wider window — this way a 1080p, 1440p, or 4K monitor (or any
+   window size the user drags to) lands in a similar visual proportion
+   instead of needing separate tuning per resolution. Floor/ceiling (180px /
+   260px) keep it from getting unreadably small on a near-minimum-width
+   window or absurdly large on a very wide one. Stays above .preview-tile's
+   clamp at every width so the current page still reads as visually primary. */
+.reward-tile {
+  position: relative;
+  background: rgba(27, 29, 35, 0.85);
+  border: 1px solid #26282f;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 clamp(180px, 11vw, 260px);
+  min-width: 0;
+}
+
+.reward-tile.locked {
+  opacity: 0.45;
+}
+
+.reward-tile.claimed {
+  border-width: 2px;
+  border-color: #2f5c3a;
+}
+
+.reward-tile-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #1f3d27;
+  color: #6fce7f;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reward-tile-photo {
+  width: 100%;
+  aspect-ratio: 1;
+  background: #14161a;
+  border: 1px solid #26282f;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.reward-tile-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+}
+
+.reward-tile-name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 8px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-align: center;
+}
+
+.reward-tile-cost {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.tile-cost-icon {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: #26282f;
+  border: 2px solid transparent;
+  border-radius: 5px;
+  padding: 3px 4px 2px;
+}
+
+.tile-cost-icon.met {
+  border-color: #6fce7f;
+}
+
+.reward-tile.claimed .reward-tile-cost {
+  opacity: 0.4;
+  filter: grayscale(0.7);
+}
+
+.tile-cost-icon-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.tile-cost-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: #c9cdd6;
+  white-space: nowrap;
+}
+
+.tile-cost-owned.met {
+  color: #6fce7f;
+}
+
+.tile-cost-owned.unmet {
+  color: #e2565b;
+}
+
+.tile-cost-need {
+  color: #c9cdd6;
+}
+
+.claim-btn {
+  margin-top: auto;
+  width: 100%;
+}
+
+.unclaim-btn {
+  margin-top: auto;
+  width: 100%;
+}
+
+.doc-type-icon-xs {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: 3px;
+  flex-shrink: 0;
+  vertical-align: -3px;
+}
+
+.reward-photo-sm {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  background: #14161a;
+  border: 1px solid #26282f;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.section-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: #9aa0ac;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 10px;
+}
+
+/* Document Types and Levels collapse behind <details> so opening Settings
+   doesn't dump every doc-type row and every level's cost editor on screen
+   at once — both start closed; the claim mode row and Import stay outside,
+   visible immediately, since those are the two things worth reaching for
+   without expanding anything first. */
+.settings-section {
+  background: #14161a;
+  border: 1px solid #26282f;
+  border-radius: 8px;
+  padding: 0 14px;
+}
+
+.settings-section[open] {
+  padding-bottom: 14px;
+}
+
+.settings-section summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 0;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.settings-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-section summary::after {
+  content: '\203A';
+  font-size: 16px;
+  font-weight: 700;
+  color: #6a6f7b;
+  transition: transform 0.15s ease;
+}
+
+.settings-section[open] summary::after {
+  transform: rotate(90deg);
+}
+
+.settings-section > *:not(summary) {
+  margin-top: 10px;
+}
+
+.settings-section .section-heading {
+  margin-top: 16px;
+}
+
+.tier-list .empty-state,
+.tier-editor-list .empty-state,
+.doc-type-name-list .empty-state,
+.sidebar-doc-list .empty-state {
+  color: #6a6f7b;
+  font-size: 13px;
+  padding: 6px 0;
+}
+
+/* Inventory sidebar */
+
+/* Sidebar is now a horizontal bar across the bottom of the window instead of
+   a column beside the tiles: mode-switch buttons stacked vertically on the
+   far left, document types laid out in a single horizontal row to the right. */
+.main-sidebar {
+  position: relative;
+  align-self: center;
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  background: rgba(27, 29, 35, 0.85);
+  border: 1px solid #26282f;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.sidebar-mode-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #14161a;
+  border: 1px solid #26282f;
+  border-radius: 6px;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.sidebar-mode-tab {
+  width: 76px;
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--mode-color, #9aa0ac);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 0;
+  border-radius: 4px;
+}
+
+.sidebar-mode-tab:hover {
+  background: #1f2127;
+}
+
+.sidebar-mode-tab.active {
+  background: var(--mode-color, var(--accent));
+  color: #14161a;
+}
+
+.sidebar-body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* One row, 8 columns — icons size to their column width (capped so they don't
+   get absurdly large on a very wide window), rather than a fixed pixel size,
+   since 8-across at a fixed large size wouldn't fit most window widths. */
+.sidebar-doc-list {
+  display: flex;
+  gap: 12px;
+}
+
+.sidebar-doc-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.doc-type-icon-lg {
+  width: 116px;
+  height: 116px;
+  flex-shrink: 0;
+  object-fit: contain;
+  background: #14161a;
+  border: 1px solid var(--mode-color);
+  border-radius: 10px;
+  padding: 9px;
+}
+
+.sidebar-doc-row .stepper {
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.sidebar-doc-row .stepper button {
+  width: 22px;
+  height: 22px;
+  font-size: 13px;
+}
+
+.sidebar-doc-row .stepper input[type="number"] {
+  width: 34px;
+  padding: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.sidebar-doc-row .stepper input[type="number"]::-webkit-inner-spin-button,
+.sidebar-doc-row .stepper input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* All-levels reference list */
+
+.tier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tier-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1b1d23;
+  border: 1px solid #26282f;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.tier-row.status-done { border-color: #2f5c3a; }
+.tier-row.status-current { border-color: var(--accent); }
+
+.tier-row-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tier-num {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6a6f7b;
+  width: 24px;
+}
+
+.tier-reward-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tier-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.tier-badge.done { background: #1f3d27; color: #6fce7f; }
+.tier-badge.current { background: var(--accent-bg-tint); color: var(--accent-bright); }
+.tier-badge.locked { background: #26282f; color: #6a6f7b; }
+
+/* Settings overlay (levels & document types management) */
+
+.settings-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 50;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.settings-overlay.open {
+  display: flex;
+}
+
+.settings-panel {
+  background: #1b1d23;
+  border: 1px solid #26282f;
+  border-radius: 12px;
+  width: min(720px, 90%);
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
+  margin-top: 20px;
+  padding: 18px 22px 26px;
+}
+
+.settings-panel > *:not(.settings-header) {
+  margin-top: 14px;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-header h2 {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.settings-header .win-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.settings-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.language-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.language-picker label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9aa0ac;
+}
+
+.language-picker select {
+  background: #26282f;
+  border: 1px solid #33353d;
+  border-radius: 6px;
+  color: #e8e9ec;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+/* Bottom-of-panel credits line — small, muted, out of the way of the actual
+   settings above it. Only Reddit is a clickable link (a real, reliable
+   profile URL); the name and Discord handle are plain text since Discord
+   usernames don't have a dependable public profile link. */
+.credits-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #26282f;
+  font-size: 12px;
+  color: #6a6f7b;
+}
+
+.credits-sep {
+  color: #454850;
+}
+
+.credits-link {
+  color: #6a6f7b;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.credits-link:hover {
+  color: #e8e9ec;
+}
+
+.tiers-toolbar code,
+.hint code {
+  background: #26282f;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: Consolas, monospace;
+  font-size: 11px;
+}
+
+/* align-items: flex-start (not center) so the toggle lines up with the title
+   instead of floating at the vertical midpoint of the title+hint block —
+   the hint wraps to 2 lines at typical settings-panel widths, and centering
+   against that made the toggle look adrift from the label it belongs to. */
+.claim-mode-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  background: #14161a;
+  border: 1px solid #26282f;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.claim-mode-info {
+  min-width: 0;
+}
+
+.claim-mode-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.claim-mode-row .hint {
+  max-width: 440px;
+}
+
+/* Pill shape reads as an actual on/off switch rather than a generic
+   rectangular button, at a glance in the settings list. */
+.toggle-btn {
+  flex-shrink: 0;
+  width: 58px;
+  padding: 8px 0;
+  border-radius: 999px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.toggle-btn.on {
+  background: #d9464b;
+  border-color: #d9464b;
+  color: white;
+}
+
+.toggle-btn.on:hover {
+  background: #e2565b;
+}
+
+/* display: flex (toggled from 'none' in JS, never 'block') so the "Turn
+   off" button sits inline with the message instead of wrapping under it —
+   this is the quick off-switch requested so Claim Mode can be turned back
+   off from the main tab without reopening Settings. Only ever visible while
+   Claim Mode is actually on, same as before. */
+.claim-mode-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: #2b1416;
+  border: 1px solid #d9464b;
+  color: #f0989c;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 8px 10px 8px 14px;
+  margin-bottom: 16px;
+}
+
+.claim-mode-banner-btn {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid #d9464b;
+  color: #f0989c;
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 999px;
+}
+
+.claim-mode-banner-btn:hover {
+  background: #d9464b;
+  color: white;
+}
+
+.add-row {
+  display: flex;
+  gap: 8px;
+}
+
+.add-row input[type="text"] {
+  flex: 1;
+  max-width: 320px;
+}
+
+input[type="text"], input[type="number"] {
+  background: #1b1d23;
+  border: 1px solid #26282f;
+  border-radius: 6px;
+  color: #e8e9ec;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+input[type="text"]:focus, input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+button {
+  background: #26282f;
+  border: 1px solid #33353d;
+  border-radius: 6px;
+  color: #e8e9ec;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #33353d;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+button.primary:hover {
+  background: var(--accent-hover);
+}
+
+button.primary:disabled {
+  background: #26282f;
+  border-color: #33353d;
+  color: #55585f;
+  cursor: not-allowed;
+}
+
+button.danger:hover {
+  background: #d9464b;
+  border-color: #d9464b;
+  color: white;
+}
+
+.doc-type-name-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.doc-type-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #1b1d23;
+  border: 1px solid #26282f;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.doc-type-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  background: #14161a;
+  border: 1px solid #26282f;
+  border-radius: 6px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.doc-type-row .doc-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  color: #e8e9ec;
+  padding: 4px 2px;
+}
+
+.doc-type-row .doc-name:focus {
+  outline: none;
+  border-bottom: 1px solid var(--accent);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stepper button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  line-height: 1;
+  font-size: 15px;
+}
+
+.stepper input[type="number"] {
+  width: 52px;
+  text-align: center;
+}
+
+/* Levels editor */
+
+.tiers-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Buttons have no white-space/flex-shrink rule by default, so once
+   .tiers-toolbar ran out of room next to the hint text, the browser was
+   shrinking the button below its own label's width and wrapping "Import
+   from battlepass.xlsx" onto two lines instead of shrinking the hint
+   (which can wrap safely). flex-shrink: 0 + white-space: nowrap makes the
+   button claim its full label width first; the hint text, which has no
+   fixed width, absorbs the squeeze instead. */
+#import-xlsx-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.tiers-toolbar .hint {
+  min-width: 0;
+}
+
+/* font-size/color/line-height belong here, not duplicated per usage — this
+   was previously only set on .tiers-toolbar .hint, so .claim-mode-row .hint
+   (nothing else overriding it) fell back to the browser's default 16px
+   body text at default line-height, wrapped into a 440px column: noticeably
+   bigger and tighter-spaced than the rest of the app's UI text, which read
+   as "scrunched." Every .hint now gets the same small, muted, breathing-room
+   treatment regardless of which section it's in. */
+.hint {
+  font-style: italic;
+  font-size: 12px;
+  color: #6a6f7b;
+  line-height: 1.5;
+}
+
+.tier-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tier-editor-card {
+  background: #1b1d23;
+  border: 1px solid #26282f;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.tier-editor-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.level-page-input {
+  width: 44px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.tier-editor-card-head input[type="text"] {
+  flex: 1;
+}
+
+.tier-editor-card-head .move-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.req-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.req-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.req-row select {
+  flex: 1;
+  background: #14161a;
+  border: 1px solid #26282f;
+  border-radius: 6px;
+  color: #e8e9ec;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.req-row input[type="number"] {
+  width: 70px;
+}
+
+/* Map */
+
+.map-placeholder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6a6f7b;
+  font-size: 13px;
+  gap: 4px;
+}
+
+.map-source {
+  font-size: 11px;
+  color: #454850;
+}
+
+/* Document-type map tooltip (hover any document icon anywhere in the app) */
+
+.doc-tooltip {
+  display: none;
+  position: fixed;
+  z-index: 200;
+  background: #14161a;
+  border: 1px solid #33353d;
+  border-radius: 8px;
+  padding: 12px 14px;
+  width: 250px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  font-style: italic;
+}
+
+.doc-tooltip-para {
+  font-size: 12px;
+  color: #c9cdd6;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.doc-tooltip-note {
+  font-size: 11px;
+  font-style: italic;
+  color: #6a6f7b;
+}
+
+.doc-tooltip-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e8e9ec;
+  margin-bottom: 8px;
+}
+
+.doc-tooltip-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9aa0ac;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+
+.doc-tooltip-maps {
+  list-style: none;
+  font-size: 12px;
+  color: #c9cdd6;
+}
+
+.doc-tooltip-maps li {
+  padding: 2px 0 2px 13px;
+  position: relative;
+}
+
+.doc-tooltip-maps li::before {
+  content: '\2022';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+/* Scrollbars */
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2d35;
+  border-radius: 5px;
+}

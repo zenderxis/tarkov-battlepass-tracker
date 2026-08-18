@@ -1,0 +1,27 @@
+{
+  "name": "tarkov-battlepass-tracker",
+  "version": "1.0.0",
+  "description": "Escape from Tarkov Battlepass document tracker (Kord Breach season)",
+  "main": "main.js",
+  "private": true,
+  "license": "MIT",
+  "author": "Zenderxis",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zenderxis/tarkov-battlepass-tracker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zenderxis/tarkov-battlepass-tracker/issues"
+  },
+  "homepage": "https://github.com/zenderxis/tarkov-battlepass-tracker#readme",
+  "scripts": {
+    "start": "electron .",
+    "generate-template": "node scripts/generate-template.js"
+  },
+  "devDependencies": {
+    "electron": "43.2.0"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}
