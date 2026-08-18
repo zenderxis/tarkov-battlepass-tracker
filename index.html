@@ -150,30 +150,24 @@
         <button id="unclaim-mode-toggle" class="toggle-btn">Off</button>
       </div>
 
-      <div class="tiers-toolbar">
-        <div class="button-stack">
-          <button id="import-xlsx-btn" data-i18n="settings.importButton">Import spreadsheet</button>
-          <button id="open-xlsx-btn" data-i18n="settings.openXlsxButton">Open spreadsheet</button>
-          <button id="export-xlsx-btn" data-i18n="settings.exportButton">Export spreadsheet</button>
-        </div>
-        <span class="hint" data-i18n="settings.importHint">Editing costs directly in the Levels section below is usually easiest. A spreadsheet is there if you'd rather fill in numbers in a real grid, or want a backup.</span>
-      </div>
-
-      <div class="create-sheet-row">
-        <span class="hint" data-i18n="settings.createSheetHint">No spreadsheet yet?</span>
+      <div class="button-row spreadsheet-row">
         <button id="create-xlsx-btn" data-i18n="settings.createXlsxButton">Create (Excel)</button>
         <button id="create-csv-btn" data-i18n="settings.createCsvButton">Create (CSV)</button>
+        <button id="open-xlsx-btn" data-i18n="settings.openXlsxButton">Open spreadsheet</button>
+        <button id="import-xlsx-btn" data-i18n="settings.importButton">Read from spreadsheet</button>
+        <button id="export-xlsx-btn" data-i18n="settings.exportButton">Export spreadsheet</button>
       </div>
 
-      <div class="create-sheet-row">
+      <div class="backup-section">
         <span class="hint" data-i18n="settings.backupsHint">Your progress is backed up automatically once a day, in case you ever need to undo a mistake.</span>
-        <button id="backup-now-btn" data-i18n="settings.backupNowButton">Back up now</button>
-        <button id="open-backups-btn" data-i18n="settings.openBackupsButton">Open backups folder</button>
-      </div>
-
-      <div class="restore-row">
-        <select id="restore-backup-select"></select>
-        <button id="restore-backup-btn" class="danger" data-i18n="settings.restoreButton">Restore</button>
+        <div class="button-row">
+          <button id="backup-now-btn" data-i18n="settings.backupNowButton">Back up now</button>
+          <button id="open-backups-btn" data-i18n="settings.openBackupsButton">Open backups folder</button>
+        </div>
+        <div class="restore-row">
+          <select id="restore-backup-select"></select>
+          <button id="restore-backup-btn" class="danger" data-i18n="settings.restoreButton">Load from backup</button>
+        </div>
       </div>
 
       <div class="reset-zone">
@@ -192,13 +186,24 @@
 
       <details class="settings-section" open>
         <summary data-i18n="settings.levelsSummary">Levels</summary>
-        <div class="tier-editor-list" id="level-editor-list">
-          <!-- populated by renderer.js -->
+        <p class="hint" data-i18n="settings.importHint">Fill in each level's document-type counts below — or use the spreadsheet buttons above instead, whichever you prefer.</p>
+        <div class="group-toggle-row">
+          <button id="levels-expand-all" data-i18n="settings.expandAll">Expand all</button>
+          <button id="levels-collapse-all" data-i18n="settings.collapseAll">Collapse all</button>
         </div>
+        <div class="tier-editor-list" id="level-editor-list">
+          <!-- populated by renderer.js: one <details class="page-group"> per page -->
+        </div>
+      </details>
 
-        <h3 class="section-heading" data-i18n="settings.allLevelsHeading">All Levels</h3>
+      <details class="settings-section" id="all-levels-section">
+        <summary data-i18n="settings.allLevelsHeading">All Levels</summary>
+        <div class="group-toggle-row">
+          <button id="all-levels-expand-all" data-i18n="settings.expandAll">Expand all</button>
+          <button id="all-levels-collapse-all" data-i18n="settings.collapseAll">Collapse all</button>
+        </div>
         <div class="tier-list" id="level-status-list">
-          <!-- populated by renderer.js -->
+          <!-- populated by renderer.js: one <details class="page-group"> per page -->
         </div>
       </details>
 

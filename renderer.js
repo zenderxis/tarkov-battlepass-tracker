@@ -63,6 +63,20 @@ function persist() {
   window.tracker.saveData(state);
 }
 
+// Sets .open true/false on every .page-group <details> under containerSelector
+// — used by both the Levels editor and All Levels sections' Expand all/
+// Collapse all buttons (see wireStaticControls() below). Queries the DOM
+// live at click time rather than tracking anything itself, so it works
+// no matter how many times the groups have been rebuilt since page load.
+function wireGroupToggle(expandId, collapseId, containerSelector) {
+  document.getElementById(expandId).addEventListener('click', () => {
+    document.querySelectorAll(`${containerSelector} > details.page-group`).forEach((d) => { d.open = true; });
+  });
+  document.getElementById(collapseId).addEventListener('click', () => {
+    document.querySelectorAll(`${containerSelector} > details.page-group`).forEach((d) => { d.open = false; });
+  });
+}
+
 // ---------- window controls ----------
 
 function wireStaticControls() {
@@ -197,6 +211,13 @@ function wireStaticControls() {
       alert(t(lang, 'settings.restoreError', { reason: result.reason || 'unknown error' }));
     }
   });
+
+  // Expand all / Collapse all just flips .open on every .page-group details
+  // currently in the DOM under that section — works regardless of when the
+  // groups were last (re)rendered, since it queries live at click time
+  // rather than tracking state of its own.
+  wireGroupToggle('levels-expand-all', 'levels-collapse-all', '#level-editor-list');
+  wireGroupToggle('all-levels-expand-all', 'all-levels-collapse-all', '#level-status-list');
 
   document.getElementById('check-updates-btn').addEventListener('click', async () => {
     const lang = state.language || 'en';
@@ -1241,61 +1262,85 @@ async function createStarterSheet(format) {
 // level's cost, one numeric input per document type, always all 9 slots
 // shown (blank/0 same as "not needed"). A running sum next to the reward
 // name shows how close that add up to this level's known Total Documents.
+// Grouped into one collapsible <details class="page-group"> per Battlepass
+// page (see .page-group in styles.css) instead of one flat 53-card list —
+// collapsed by default on every render (no open/closed state persists
+// across re-renders; see the Expand all/Collapse all wiring in
+// wireStaticControls(), which just toggles .open on whatever's currently in
+// the DOM).
 function renderLevelEditor() {
   const list = document.getElementById('level-editor-list');
   const lang = state.language || 'en';
   list.innerHTML = '';
 
-  const sorted = [...state.levels].sort((a, b) => (a.page - b.page) || (a.id - b.id));
-  sorted.forEach((level) => {
-    const card = document.createElement('div');
-    card.className = 'tier-editor-card';
+  pageNumbers().forEach((pageNum) => {
+    const group = document.createElement('details');
+    group.className = 'page-group';
 
-    const head = document.createElement('div');
-    head.className = 'tier-editor-card-head';
+    const summary = document.createElement('summary');
+    summary.textContent = t(lang, 'settings.pageGroupSummary', { page: pageNum });
+    group.appendChild(summary);
 
-    const photoUrlValue = photoUrl(level.itemName);
-    if (photoUrlValue) {
-      const photoEl = document.createElement('img');
-      photoEl.className = 'reward-photo-sm';
-      photoEl.alt = '';
-      photoEl.src = photoUrlValue;
-      photoEl.addEventListener('error', () => photoEl.remove());
-      head.appendChild(photoEl);
-    }
-
-    const info = document.createElement('div');
-    info.className = 'tier-editor-info';
-    const nameEl = document.createElement('div');
-    nameEl.className = 'tier-editor-name';
-    nameEl.textContent = level.reward || t(lang, 'tile.untitledReward');
-    const metaEl = document.createElement('div');
-    metaEl.className = 'tier-editor-meta';
-    metaEl.textContent = t(lang, 'settings.levelMeta', { page: level.page, level: level.id });
-    info.append(nameEl, metaEl);
-    head.appendChild(info);
-
-    const sumEl = document.createElement('div');
-    sumEl.className = 'tier-editor-sum';
-    head.appendChild(sumEl);
-
-    const refreshSum = () => {
-      const sum = state.documentTypes.reduce((s, type) => s + (level.cost[type] || 0), 0);
-      sumEl.textContent = `${sum} / ${level.totalDocuments}`;
-      sumEl.className = 'tier-editor-sum' + (sum === level.totalDocuments ? ' met' : ' unmet');
-    };
-
-    const costGrid = document.createElement('div');
-    costGrid.className = 'cost-grid';
-    state.documentTypes.forEach((type) => {
-      costGrid.appendChild(buildLevelCostCell(level, type, refreshSum));
+    const cardList = document.createElement('div');
+    cardList.className = 'tier-editor-list';
+    levelsForPage(pageNum).forEach((level) => {
+      cardList.appendChild(buildLevelEditorCard(level));
     });
+    group.appendChild(cardList);
 
-    refreshSum();
-
-    card.append(head, costGrid);
-    list.appendChild(card);
+    list.appendChild(group);
   });
+}
+
+function buildLevelEditorCard(level) {
+  const lang = state.language || 'en';
+  const card = document.createElement('div');
+  card.className = 'tier-editor-card';
+
+  const head = document.createElement('div');
+  head.className = 'tier-editor-card-head';
+
+  const photoUrlValue = photoUrl(level.itemName);
+  if (photoUrlValue) {
+    const photoEl = document.createElement('img');
+    photoEl.className = 'reward-photo-sm';
+    photoEl.alt = '';
+    photoEl.src = photoUrlValue;
+    photoEl.addEventListener('error', () => photoEl.remove());
+    head.appendChild(photoEl);
+  }
+
+  const info = document.createElement('div');
+  info.className = 'tier-editor-info';
+  const nameEl = document.createElement('div');
+  nameEl.className = 'tier-editor-name';
+  nameEl.textContent = level.reward || t(lang, 'tile.untitledReward');
+  const metaEl = document.createElement('div');
+  metaEl.className = 'tier-editor-meta';
+  metaEl.textContent = t(lang, 'settings.levelMeta', { page: level.page, level: level.id });
+  info.append(nameEl, metaEl);
+  head.appendChild(info);
+
+  const sumEl = document.createElement('div');
+  sumEl.className = 'tier-editor-sum';
+  head.appendChild(sumEl);
+
+  const refreshSum = () => {
+    const sum = state.documentTypes.reduce((s, type) => s + (level.cost[type] || 0), 0);
+    sumEl.textContent = `${sum} / ${level.totalDocuments}`;
+    sumEl.className = 'tier-editor-sum' + (sum === level.totalDocuments ? ' met' : ' unmet');
+  };
+
+  const costGrid = document.createElement('div');
+  costGrid.className = 'cost-grid';
+  state.documentTypes.forEach((type) => {
+    costGrid.appendChild(buildLevelCostCell(level, type, refreshSum));
+  });
+
+  refreshSum();
+
+  card.append(head, costGrid);
+  return card;
 }
 
 // Same icon-on-top + (−/count/+) stepper shape as the inventory sidebar's
@@ -1364,31 +1409,46 @@ function buildLevelCostCell(level, type, onUpdate) {
 
 // ---------- Manage section: compact all-levels status reference ----------
 
+// Same one-<details>-per-page grouping as renderLevelEditor() above (see
+// .page-group in styles.css), just holding status rows instead of cost
+// cards. The page number is no longer repeated on each row (it used to be,
+// via a small "P{n}" badge) — redundant now that the group's own summary
+// already says which page it is.
 function renderLevelStatusList() {
   const list = document.getElementById('level-status-list');
   if (!list) return;
+  const lang = state.language || 'en';
+  list.innerHTML = '';
 
-  if (!state.levels.length) {
-    list.innerHTML = `<div class="empty-state">Nothing here yet.</div>`;
-    return;
-  }
-  const sorted = [...state.levels].sort((a, b) => (a.page || 1) - (b.page || 1) || (a.id || 0) - (b.id || 0));
-  list.innerHTML = sorted.map((level) => {
-    const claimed = isClaimed(level.id);
-    const unlocked = isPageUnlocked(level.page || 1);
-    const status = claimed ? 'done' : (unlocked ? 'current' : 'locked');
-    const badgeText = claimed ? 'Claimed' : (unlocked ? 'Available' : 'Locked');
-    return `
-      <div class="tier-row status-${status}">
-        <div class="tier-row-main">
-          <span class="tier-num">P${level.page || 1}</span>
-          ${photoImgTag(level.itemName, 'reward-photo-sm')}
-          <span class="tier-reward-name">${escapeHtml(level.reward || 'Untitled reward')}</span>
+  pageNumbers().forEach((pageNum) => {
+    const group = document.createElement('details');
+    group.className = 'page-group';
+
+    const summary = document.createElement('summary');
+    summary.textContent = t(lang, 'settings.pageGroupSummary', { page: pageNum });
+    group.appendChild(summary);
+
+    const rows = document.createElement('div');
+    rows.className = 'tier-list';
+    rows.innerHTML = levelsForPage(pageNum).map((level) => {
+      const claimed = isClaimed(level.id);
+      const unlocked = isPageUnlocked(level.page || 1);
+      const status = claimed ? 'done' : (unlocked ? 'current' : 'locked');
+      const badgeText = t(lang, claimed ? 'settings.statusClaimed' : (unlocked ? 'settings.statusAvailable' : 'settings.statusLocked'));
+      return `
+        <div class="tier-row status-${status}">
+          <div class="tier-row-main">
+            ${photoImgTag(level.itemName, 'reward-photo-sm')}
+            <span class="tier-reward-name">${escapeHtml(level.reward || t(lang, 'tile.untitledReward'))}</span>
+          </div>
+          <span class="tier-badge ${status}">${badgeText}</span>
         </div>
-        <span class="tier-badge ${status}">${badgeText}</span>
-      </div>
-    `;
-  }).join('');
+      `;
+    }).join('');
+    group.appendChild(rows);
+
+    list.appendChild(group);
+  });
 }
 
 // ---------- utils ----------

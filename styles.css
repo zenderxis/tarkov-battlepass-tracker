@@ -949,13 +949,6 @@ html, body {
   gap: 12px;
 }
 
-.tier-num {
-  font-size: 12px;
-  font-weight: 700;
-  color: #6a6f7b;
-  width: 24px;
-}
-
 .tier-reward-name {
   font-size: 13px;
   font-weight: 600;
@@ -1135,7 +1128,6 @@ html, body {
   color: #e8e9ec;
 }
 
-.tiers-toolbar code,
 .hint code {
   background: #26282f;
   border-radius: 3px;
@@ -1411,28 +1403,29 @@ button.danger:hover {
 
 /* Levels editor */
 
-.tiers-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.button-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Visually set apart from the spreadsheet toolbar above it — these two
-   buttons are destructive and irreversible, so a border + its own heading
-   keeps them from blending in with routine setup actions. */
-.create-sheet-row {
+/* Generic row of buttons — the spreadsheet actions (Create/Open/Read/
+   Export) and the two backup action buttons both use this, so they read as
+   the same kind of control group rather than each having their own
+   one-off layout. Wraps onto multiple lines under real width pressure
+   rather than letting any individual button's label wrap internally. */
+.button-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
-.create-sheet-row .hint {
+.button-row button {
+  white-space: nowrap;
+}
+
+.backup-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.backup-section .hint {
   margin: 0;
 }
 
@@ -1481,24 +1474,8 @@ button.danger:hover {
   gap: 10px;
 }
 
-/* Buttons have no white-space/flex-shrink rule by default, so once
-   .tiers-toolbar ran out of room next to the hint text, the browser was
-   shrinking the button below its own label's width and wrapping "Import
-   from battlepass.xlsx" onto two lines instead of shrinking the hint
-   (which can wrap safely). flex-shrink: 0 + white-space: nowrap makes the
-   button claim its full label width first; the hint text, which has no
-   fixed width, absorbs the squeeze instead. */
-#import-xlsx-btn {
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.tiers-toolbar .hint {
-  min-width: 0;
-}
-
 /* font-size/color/line-height belong here, not duplicated per usage — this
-   was previously only set on .tiers-toolbar .hint, so .claim-mode-row .hint
+   was previously only set on one specific row's hint, so .claim-mode-row .hint
    (nothing else overriding it) fell back to the browser's default 16px
    body text at default line-height, wrapped into a 440px column: noticeably
    bigger and tighter-spaced than the rest of the app's UI text, which read
@@ -1509,6 +1486,75 @@ button.danger:hover {
   font-size: 12px;
   color: #6a6f7b;
   line-height: 1.5;
+}
+
+/* Expand all / Collapse all — plain toggle buttons that just set .open on
+   every .page-group details inside the same section (see renderer.js).
+   Small and low-key since they're a convenience, not a primary action. */
+.group-toggle-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.group-toggle-row button {
+  background: transparent;
+  border: 1px solid #33353d;
+  color: #9aa0ac;
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.group-toggle-row button:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}
+
+/* One collapsible per Battlepass page, holding either that page's cost-
+   editor cards or its status rows (renderLevelEditor()/renderLevelStatusList()
+   in renderer.js both build these the same way). Lighter background than
+   the .settings-section it sits inside (#1b1d23 vs #14161a) so it reads as
+   a nested sub-level, same convention as .tier-editor-card/.page-need-item
+   using #1b1d23 for "content sitting inside a section". Collapsed by
+   default on every render — there's no per-page open/closed state kept
+   across re-renders, just whatever a click leaves it at until the next one. */
+.page-group {
+  background: #1b1d23;
+  border: 1px solid #26282f;
+  border-radius: 8px;
+  padding: 0 14px;
+}
+
+.page-group[open] {
+  padding-bottom: 12px;
+}
+
+.page-group summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #c9cdd6;
+  cursor: pointer;
+  list-style: none;
+}
+
+.page-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.page-group summary::after {
+  content: '\203A';
+  font-size: 14px;
+  font-weight: 700;
+  color: #6a6f7b;
+  transition: transform 0.15s ease;
+}
+
+.page-group[open] summary::after {
+  transform: rotate(90deg);
 }
 
 .tier-editor-list {
