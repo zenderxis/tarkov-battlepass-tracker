@@ -142,8 +142,15 @@
         <div class="button-stack">
           <button id="import-xlsx-btn" data-i18n="settings.importButton">Import spreadsheet</button>
           <button id="open-xlsx-btn" data-i18n="settings.openXlsxButton">Open spreadsheet</button>
+          <button id="export-xlsx-btn" data-i18n="settings.exportButton">Export spreadsheet</button>
         </div>
-        <span class="hint" data-i18n="settings.importHint">Each level has its own standalone document cost (not cumulative with other levels), shared across all game modes. Editing <code>battlepass.xlsx</code> (or <code>.csv</code>) directly and re-importing is usually easier than hand-editing here.</span>
+        <span class="hint" data-i18n="settings.importHint">Editing costs directly in the Levels section below is usually easiest. A spreadsheet is there if you'd rather fill in numbers in a real grid, or want a backup.</span>
+      </div>
+
+      <div class="create-sheet-row">
+        <span class="hint" data-i18n="settings.createSheetHint">No spreadsheet yet?</span>
+        <button id="create-xlsx-btn" data-i18n="settings.createXlsxButton">Create (Excel)</button>
+        <button id="create-csv-btn" data-i18n="settings.createCsvButton">Create (CSV)</button>
       </div>
 
       <div class="reset-zone">
@@ -154,18 +161,7 @@
         </div>
       </div>
 
-      <details class="settings-section">
-        <summary data-i18n="settings.docTypesSummary">Document Types</summary>
-        <div class="add-row">
-          <input type="text" id="new-doc-type" placeholder="New document type name" data-i18n-placeholder="settings.newDocTypePlaceholder" />
-          <button id="add-doc-type-btn" data-i18n="settings.addDocTypeButton">Add Document Type</button>
-        </div>
-        <div class="doc-type-name-list" id="doc-type-name-list">
-          <!-- populated by renderer.js -->
-        </div>
-      </details>
-
-      <details class="settings-section">
+      <details class="settings-section" open>
         <summary data-i18n="settings.levelsSummary">Levels</summary>
         <div class="tier-editor-list" id="level-editor-list">
           <!-- populated by renderer.js -->

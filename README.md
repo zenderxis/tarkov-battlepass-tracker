@@ -13,7 +13,7 @@ Not affiliated with Battlestate Games. "Escape from Tarkov" and "Battlepass" are
 - **Unclaim Mode** — off by default, so a claimed reward can't be undone by an accidental click; turn it on when you actually need to undo one.
 - **Document map tooltips** — hover any document type to see which maps it drops on, sourced from [tarkovdocsmap.com](https://tarkovdocsmap.com/) (also embedded in its own tab).
 - **18-language UI** — the app's own interface (not the map data) is available in English, Russian, Japanese, Chinese, Korean, Turkish, Spanish (Spain), Spanish (Mexico), German, Italian, French, Czech, Hungarian, Polish, Portuguese, Slovak, Romanian, and Vietnamese. See [i18n.js](i18n.js) for exactly what is and isn't translated, and why.
-- Everything's driven by a spreadsheet you fill in yourself — see **Setting up your own data** below.
+- **All 53 rewards and document types are built in** — the season's structure (which page each reward is on, its name, and its total document cost) is the same for every player, so it ships hardcoded and shows up immediately on first launch. The only thing you fill in yourself is the *document-type breakdown* per level, since that's genuinely personal — see **Setting up your own data** below.
 
 ## Getting started
 
@@ -40,28 +40,23 @@ npm start
 
 ## Setting up your own data
 
-**This is the one manual step.** Document costs per Battlepass level are personal — two players can need completely different document *types* for the exact same reward, even though the reward's total document count is the same for everyone. Because of that, there's no pre-filled spreadsheet shipped with this app; you build your own from a blank template.
+**This is the one manual step.** The season's structure — which page each reward is on, its name, and its total document cost — is hardcoded and identical for everyone, so it's already there when you launch. Every reward starts with its Claim button greyed out, though, because the *document-type breakdown* behind that total is personal: two players can need completely different document types for the exact same reward, even though the total is the same.
 
-1. Launch the app. With no data yet, the Main tab offers two buttons: **Copy starter template (Excel)** and **Copy starter template (CSV)**. Pick whichever you can actually open — CSV needs no spreadsheet software at all, it opens and edits fine in Notepad or any text editor. Either one copies the blank template to `%APPDATA%\TarkovBattlepassTracker\battlepass.xlsx` (or `.csv`) — a real, editable file outside the app itself, so it survives updates/reinstalls.
-2. Open that file. Every reward's page, name, and its overall `Total Documents` count are already filled in — only the per-document-type columns are blank.
-3. Fill in your own numbers per document type, per reward. Each row's document-type columns should add up to that row's `Total Documents` value — if they don't, you've mistyped something.
-4. In the app, open **Settings** → **Import spreadsheet**. Re-run this any time you edit the file; it's the intended workflow, easier than hand-editing levels in the app itself. **Open spreadsheet** right next to it opens whichever one you're using, in whatever app Windows has associated with that file type.
+**Easiest path — edit costs directly in the app**: open **Settings** → **Levels**. Each level has a small grid, one input per document type; type in your numbers and they save immediately, no file involved. A running total next to each level shows your entered sum against the level's required total, so you can tell at a glance when a level is fully and correctly filled in — once it matches, that level's Claim button unlocks on the Main tab.
+
+**Spreadsheet — a secondary option**, useful if you'd rather fill in numbers in a real grid, want a backup, or are moving your data to another install:
+
+1. In **Settings**, use **Create (Excel)** or **Create (CSV)** under "No spreadsheet yet?" — CSV needs no spreadsheet software at all, it opens and edits fine in Notepad or any text editor. This writes a blank sheet (every reward's page, name, and `Total Documents` already filled in, document-type columns blank) to `%APPDATA%\TarkovBattlepassTracker\battlepass.xlsx` (or `.csv`).
+2. Fill in your own numbers per document type, per reward. Each row's document-type columns should add up to that row's `Total Documents` value.
+3. **Import spreadsheet** loads those numbers into the app, matched by level — matched rows overwrite that level's costs; levels the sheet has no row for keep whatever's already in the app. **Open spreadsheet** opens the file in whatever app Windows has associated with that file type; **Export spreadsheet** writes your current in-app costs back out to a file of your choosing, handy as a backup or for moving to another machine.
 
 The importer checks your math for you: if a row's document-type columns don't add up to its `Total Documents` value, or the grand total across every level doesn't land on the expected season total, you'll get a warning listing exactly which rows are off.
-
-If you're building from source and want fresh, correctly-structured templates (e.g. after adding new levels to your real sheet), regenerate both `data-source/battlepass.template.xlsx` and `.template.csv` — the ones the app copies from — with:
-
-```bash
-node scripts/generate-template.js
-```
-
-That reads from your actual in-use spreadsheet in `%APPDATA%` (falling back to the legacy in-project copy if you haven't launched the updated app yet) — only relevant if you're maintaining/extending the season's level data itself, not for normal use.
 
 ## Data storage
 
 Everything personal to you — `data.json` (owned document counts, claimed rewards, settings) and `battlepass.xlsx` or `battlepass.csv` (your document costs, whichever format you picked) — lives in `%APPDATA%\TarkovBattlepassTracker\`, outside the app's own install/source directory entirely.
 
-Settings has two reset buttons if you'd rather not do this by hand: **Reset Progress** clears claims and document counts back to zero while keeping your imported levels and document types; **Full Reset** wipes the app's saved state back to a blank install (your actual `battlepass.xlsx`/`.csv` file is never touched, so re-importing afterward brings everything straight back).
+Settings has two reset buttons under **Reset**: **Reset Progress** clears claimed rewards and owned document counts back to zero while keeping your entered cost data exactly as it is — "play through the same Battlepass again from scratch." **Full Reset** wipes the app's saved state entirely, including your entered costs, back to a blank install (your actual `battlepass.xlsx`/`.csv` file on disk is never touched, so re-importing afterward brings your costs straight back).
 
 ## Feedback / issues
 
@@ -69,7 +64,8 @@ Use the **Report Issue** button in Settings, or open an issue directly on this r
 
 ## Notes for future seasons
 
-- `EXPECTED_SEASON_TOTAL` in `main.js` is hardcoded to 501 for the Kord Breach season's document-total sanity check — update it if a future season's total is different.
+- The season's structure — the 9 document types and all 53 levels (page, reward name, item name, total documents) — lives in [`lib/battlepass-data.js`](lib/battlepass-data.js), the single source of truth every other piece of the app reads from (`main.js`'s default state, the spreadsheet builder, the importer's validation). Update it there for a new season; `EXPECTED_SEASON_TOTAL` in `main.js` (currently 501, Kord Breach) should be updated to match the new grand total at the same time.
+- Blank starter spreadsheets and exports are generated on the fly from `lib/battlepass-data.js` via [`lib/build-sheet.js`](lib/build-sheet.js) — there's no static template file to keep in sync. `node scripts/generate-template.js` is only useful for producing a standalone copy for reference/testing outside the running app.
 - If `tarkovdocsmap.com` changes URL or goes down, update `MAP_URL` in `main.js`.
 - Document-type map tooltips (`DOC_TYPE_MAPS` in `renderer.js`) are English-only regardless of the selected UI language — see the scope note at the top of `i18n.js`.
 - If the app icon (`data-source/app_resources/black_div.ico`) ever needs regenerating from new source art, `node scripts/generate-icon.js` rebuilds it from `black_div.png` at every size Windows actually needs (16 up to 256) — a plain single-size `.ico` will make `npm run dist` fail.

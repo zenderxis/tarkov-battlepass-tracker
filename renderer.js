@@ -8,19 +8,11 @@ const REDDIT_URL = 'https://www.reddit.com/user/Zenderxis';
 let state = null;
 let viewedPage = null;
 let sidebarMode = 'pvp';
-// Whether data-source/battlepass.xlsx exists on disk — checked once at boot.
-// It's gitignored (personal data, see scripts/generate-template.js), so on a
-// fresh clone/install it genuinely won't exist yet; the "no levels" empty
-// state branches on this to offer copying the starter template instead of
-// just pointing at Import (which would otherwise fail with a raw
-// file-not-found error the first time someone tries it).
-let xlsxSourceExists = true;
 
 // ---------- boot ----------
 
 async function boot() {
   state = await window.tracker.loadData();
-  xlsxSourceExists = await window.tracker.xlsxSourceExists();
   populateLanguageSelect();
   applyTranslations();
   renderAll();
@@ -120,12 +112,7 @@ function wireStaticControls() {
   document.getElementById('page-prev-side').addEventListener('click', () => stepPage(-1));
   document.getElementById('page-next-side').addEventListener('click', () => stepPage(1));
 
-  document.getElementById('add-doc-type-btn').addEventListener('click', addDocType);
-  document.getElementById('new-doc-type').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') addDocType();
-  });
-
-  document.getElementById('import-xlsx-btn').addEventListener('click', importFromXlsx);
+  document.getElementById('import-xlsx-btn').addEventListener('click', importFromSheet);
 
   document.getElementById('open-xlsx-btn').addEventListener('click', async () => {
     const result = await window.tracker.openBattlepassXlsx();
@@ -134,6 +121,11 @@ function wireStaticControls() {
       alert(result.reason === 'no-file' ? t(lang, 'settings.openXlsxMissing') : `Couldn't open battlepass.xlsx: ${result.error || 'unknown error'}`);
     }
   });
+
+  document.getElementById('export-xlsx-btn').addEventListener('click', () => exportSheet('xlsx'));
+
+  document.getElementById('create-xlsx-btn').addEventListener('click', () => createStarterSheet('xlsx'));
+  document.getElementById('create-csv-btn').addEventListener('click', () => createStarterSheet('csv'));
 
   // Clears claims + owned counts only — levels, document types, and the
   // spreadsheet link stay exactly as they are, so this is "play through
@@ -301,6 +293,12 @@ function isPageUnlocked(pageNum) {
 // documents that were never actually taken.
 function claimLevel(level, modeKey) {
   if (isClaimed(level.id) || !isPageUnlocked(level.page || 1)) return;
+  // Belt-and-suspenders: the Claim button is already disabled for this case
+  // (see buildTile()), but never allow claiming a level with no cost data
+  // even if this somehow gets called another way — Claim Mode included,
+  // since "skip the cost check" isn't the same as "there was nothing to
+  // check in the first place".
+  if (Object.keys(level.cost || {}).length === 0) return;
   const forced = !!state.claimMode;
   if (!forced && !canAffordLevel(level, modeKey)) return;
   if (!forced) {
@@ -360,7 +358,6 @@ function renderAll() {
   renderClaimMode();
   renderPage();
   renderSidebar();
-  renderDocTypeNameList();
   renderLevelEditor();
   renderLevelStatusList();
 }
@@ -383,21 +380,12 @@ function renderPage() {
 
   const lang = state.language || 'en';
 
-  if (!pages.length) {
-    titleEl.textContent = t(lang, 'main.noPagesYet');
-    statusEl.textContent = '';
-    prevBtn.disabled = true;
-    nextBtn.disabled = true;
-    prevSideBtn.disabled = true;
-    nextSideBtn.disabled = true;
-    grid.innerHTML = '';
-    grid.appendChild(xlsxSourceExists ? buildSimpleEmptyState(t(lang, 'main.noLevelsSetUp')) : buildOnboardingEmptyState());
-    prevPreview.innerHTML = '';
-    nextPreview.innerHTML = '';
-    renderPageNeeds(null);
-    return;
-  }
-
+  // pages/levels/document types are always populated now (hardcoded season
+  // structure — see lib/battlepass-data.js), so there's no "nothing to show
+  // yet" state to handle here anymore; the only thing that can still be
+  // missing is cost data for a given level, which buildTile() gates the
+  // Claim button on individually, not something the whole page needs to
+  // wait on.
   const idx = pages.indexOf(viewedPage);
   titleEl.textContent = t(lang, 'main.pageTitle', { page: viewedPage, total: pages[pages.length - 1] });
   prevBtn.disabled = idx <= 0;
@@ -443,68 +431,6 @@ function renderPage() {
 
   grid.innerHTML = '';
   levels.forEach((level) => grid.appendChild(buildTile(level, unlocked)));
-}
-
-function buildSimpleEmptyState(text) {
-  const div = document.createElement('div');
-  div.className = 'empty-state';
-  div.textContent = text;
-  return div;
-}
-
-// Shared by both onboarding template buttons below. format is 'xlsx' or
-// 'csv' — CSV needs no spreadsheet software at all (any text editor works),
-// which is the whole point of offering it as a second option here.
-async function copyTemplateAndRefresh(format) {
-  const lang = state.language || 'en';
-  const result = await window.tracker.copyTemplate(format);
-  if (result.copied) {
-    xlsxSourceExists = true;
-    alert(t(lang, 'main.templateCopied'));
-    renderPage();
-  } else if (result.reason === 'already-exists') {
-    // Someone else (or a previous click) already created it — just
-    // reflect that instead of erroring.
-    xlsxSourceExists = true;
-    renderPage();
-  } else {
-    alert(`Couldn't find the starter template (data-source/battlepass.template.${format}). Run "node scripts/generate-template.js" or ask whoever set up this copy of the app.`);
-  }
-}
-
-// First-run empty state: neither battlepass.xlsx nor battlepass.csv exists
-// yet (both gitignored — everyone's own document breakdown is personal, see
-// scripts/generate-template.js), so rather than pointing at Import and
-// having it fail with a raw file-not-found error, offer to copy a blank
-// starter template into place as the actual next step — in whichever
-// format the user can actually work with.
-function buildOnboardingEmptyState() {
-  const lang = state.language || 'en';
-  const wrap = document.createElement('div');
-  wrap.className = 'empty-state onboarding';
-
-  const body = document.createElement('p');
-  body.textContent = t(lang, 'main.onboardingNoSource');
-  wrap.appendChild(body);
-
-  const btnRow = document.createElement('div');
-  btnRow.className = 'onboarding-btn-row';
-
-  const xlsxBtn = document.createElement('button');
-  xlsxBtn.className = 'primary';
-  xlsxBtn.textContent = t(lang, 'main.copyTemplateButton');
-  xlsxBtn.addEventListener('click', () => copyTemplateAndRefresh('xlsx'));
-  btnRow.appendChild(xlsxBtn);
-
-  const csvBtn = document.createElement('button');
-  csvBtn.textContent = t(lang, 'main.copyTemplateCsvButton');
-  csvBtn.title = t(lang, 'main.copyTemplateCsvHint');
-  csvBtn.addEventListener('click', () => copyTemplateAndRefresh('csv'));
-  btnRow.appendChild(csvBtn);
-
-  wrap.appendChild(btnRow);
-
-  return wrap;
 }
 
 // Totals still needed to finish the current page: for each document type, sum
@@ -646,11 +572,24 @@ function buildTile(level, pageUnlocked) {
   name.title = level.reward || '';
   tile.appendChild(name);
 
+  // A level with no cost data yet (fresh install, or costs simply never
+  // filled in for this one) can't be claimed regardless of documents owned
+  // or Claim Mode — there's nothing to check affordability against. Fill it
+  // in via the Levels section in Settings, or import/create a spreadsheet.
+  const hasCostData = Object.keys(level.cost || {}).length > 0;
+
   const costRow = document.createElement('div');
   costRow.className = 'reward-tile-cost';
-  Object.entries(level.cost).forEach(([type, need]) => {
-    costRow.appendChild(buildCostIcon(type, need));
-  });
+  if (hasCostData) {
+    Object.entries(level.cost).forEach(([type, need]) => {
+      costRow.appendChild(buildCostIcon(type, need));
+    });
+  } else {
+    const placeholder = document.createElement('span');
+    placeholder.className = 'reward-tile-cost-missing';
+    placeholder.textContent = t(lang, 'tile.costsNotSet');
+    costRow.appendChild(placeholder);
+  }
   tile.appendChild(costRow);
 
   if (pageUnlocked && !claimed) {
@@ -658,12 +597,14 @@ function buildTile(level, pageUnlocked) {
     // the inventory sidebar — no mode selection step on the tile itself anymore.
     // Switching sidebar tabs re-renders the tile grid (see the tab click handler
     // in renderSidebar()), so this button's affordability/label stays in sync.
-    const affordable = state.claimMode || canAffordLevel(level, sidebarMode);
+    const affordable = hasCostData && (state.claimMode || canAffordLevel(level, sidebarMode));
     const btn = document.createElement('button');
     btn.className = 'primary claim-btn';
     btn.textContent = t(lang, 'tile.claimButton', { mode: MODE_SHORT[sidebarMode] });
     btn.disabled = !affordable;
-    if (!affordable) {
+    if (!hasCostData) {
+      btn.title = t(lang, 'tile.costsNotSetTooltip');
+    } else if (!affordable) {
       const deficits = levelDeficits(level, sidebarMode).filter((d) => !d.met);
       btn.title = t(lang, 'tile.needPrefix') + deficits
         .map((d) => t(lang, 'tile.deficitItem', { amount: d.need - d.have, type: d.type }))
@@ -766,15 +707,9 @@ function renderSidebar() {
   const list = document.getElementById('sidebar-doc-list');
   list.innerHTML = '';
 
-  const orderedTypes = orderedSidebarDocTypes();
-  if (!orderedTypes.length) {
-    const empty = document.createElement('div');
-    empty.className = 'empty-state';
-    empty.textContent = t(state.language || 'en', 'sidebar.noDocTypes');
-    list.appendChild(empty);
-    return;
-  }
-  orderedTypes.forEach((typeName) => {
+  // Document types are fixed (see lib/battlepass-data.js), always all 9 —
+  // no "none yet" case to handle here anymore.
+  orderedSidebarDocTypes().forEach((typeName) => {
     list.appendChild(buildSidebarDocRow(sidebarMode, typeName));
   });
 }
@@ -825,92 +760,6 @@ function buildSidebarDocRow(modeKey, typeName) {
   stepper.append(minusBtn, countInput, plusBtn);
   row.append(icon, stepper);
   return row;
-}
-
-// ---------- Manage section: document type names (add/rename/remove) ----------
-
-function renderDocTypeNameList() {
-  const list = document.getElementById('doc-type-name-list');
-  if (!state.documentTypes.length) {
-    list.innerHTML = `<div class="empty-state">${escapeHtml(t(state.language || 'en', 'settings.noDocTypesYet'))}</div>`;
-    return;
-  }
-
-  list.innerHTML = '';
-  state.documentTypes.forEach((typeName) => {
-    const row = document.createElement('div');
-    row.className = 'doc-type-row';
-
-    const icon = document.createElement('img');
-    icon.className = 'doc-type-icon';
-    icon.alt = '';
-    const iconCandidates = docTypeIconCandidates(typeName);
-    icon.src = iconCandidates[0];
-    icon.dataset.candidates = JSON.stringify(iconCandidates);
-    icon.dataset.idx = '0';
-    icon.addEventListener('error', () => docTypeIconFallback(icon));
-    attachDocTypeTooltip(icon, typeName);
-    row.appendChild(icon);
-
-    const nameInput = document.createElement('input');
-    nameInput.type = 'text';
-    nameInput.className = 'doc-name';
-    nameInput.value = typeName;
-    nameInput.addEventListener('change', () => renameDocType(typeName, nameInput.value));
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'danger';
-    deleteBtn.textContent = 'Remove';
-    deleteBtn.addEventListener('click', () => removeDocType(typeName));
-
-    row.append(nameInput, deleteBtn);
-    list.appendChild(row);
-  });
-}
-
-function addDocType() {
-  const input = document.getElementById('new-doc-type');
-  const name = input.value.trim();
-  if (!name || state.documentTypes.includes(name)) return;
-  state.documentTypes.push(name);
-  MODE_ORDER.forEach((m) => { state.modes[m].owned[name] = 0; });
-  input.value = '';
-  persist();
-  renderAll();
-}
-
-function renameDocType(oldName, newNameRaw) {
-  const newName = newNameRaw.trim();
-  if (!newName || newName === oldName) {
-    renderDocTypeNameList();
-    return;
-  }
-  if (state.documentTypes.includes(newName)) {
-    renderDocTypeNameList();
-    return;
-  }
-  state.documentTypes = state.documentTypes.map((n) => (n === oldName ? newName : n));
-  MODE_ORDER.forEach((m) => {
-    const owned = state.modes[m].owned;
-    owned[newName] = owned[oldName] || 0;
-    delete owned[oldName];
-  });
-  state.levels.forEach((level) => {
-    if (Object.prototype.hasOwnProperty.call(level.cost, oldName)) {
-      level.cost[newName] = level.cost[oldName];
-      delete level.cost[oldName];
-    }
-  });
-  persist();
-  renderAll();
-}
-
-function removeDocType(name) {
-  state.documentTypes = state.documentTypes.filter((n) => n !== name);
-  MODE_ORDER.forEach((m) => { delete state.modes[m].owned[name]; });
-  state.levels.forEach((level) => { delete level.cost[name]; });
-  persist();
-  renderAll();
 }
 
 // ---------- reward photos ----------
@@ -1053,21 +902,28 @@ function attachDocTypeTooltip(el, typeName) {
   el.addEventListener('mouseleave', hideDocTooltip);
 }
 
-// ---------- Excel import ----------
+// ---------- Spreadsheet import/export ----------
+//
+// Levels and document types are fixed (see lib/battlepass-data.js on the
+// main-process side) — a spreadsheet's only job now is carrying cost
+// values, matched back to the app's own levels by id. Editing costs
+// directly in the Levels section below is the primary workflow; these are
+// the secondary, spreadsheet-based path for anyone who'd rather do that in
+// a real grid, or wants an export/backup.
 
-async function importFromXlsx() {
+async function importFromSheet() {
   const ok = window.confirm(
-    'This replaces all Levels and Document Types with what\'s currently in battlepass.xlsx.\n\n' +
-    'Owned counts for document types that still exist are kept; claimed rewards are kept ' +
-    '(any that no longer exist in the sheet are dropped). Continue?'
+    "This replaces your current document costs with whatever's in your " +
+    'spreadsheet, matched by level. Levels the sheet has no row for keep ' +
+    'their existing costs untouched. Continue?'
   );
   if (!ok) return;
 
   try {
-    const result = await window.tracker.importXlsx();
-    applyImportResult(result);
+    const result = await window.tracker.importCosts();
+    applyImportedCosts(result.costsById);
     alert(
-      `Imported ${result.levels.length} levels and ${result.documentTypes.length} document types from "${result.sheetName}".` +
+      `Imported costs for ${Object.keys(result.costsById).length} level(s) from "${result.sheetName}".` +
       formatValidationSummary(result.validation)
     );
   } catch (err) {
@@ -1075,116 +931,94 @@ async function importFromXlsx() {
   }
 }
 
-// Turns the "Total Documents" self-check (see parseBattlepassXlsx() in
-// main.js) into a plain-text block appended to the import success alert —
-// only when there's actually something to say. Silent (empty string) if the
-// sheet has no usable "Total Documents" column, or everything checks out.
+// Turns the "Total Documents" self-check (see importCosts() in main.js)
+// into a plain-text block appended to the import success alert — only when
+// there's actually something to say. Silent (empty string) if everything
+// checks out.
 function formatValidationSummary(validation) {
-  if (!validation || validation.rowsChecked === 0) return '';
+  if (!validation) return '';
 
   const lines = [];
   if (validation.mismatches.length) {
-    lines.push('', `⚠ ${validation.mismatches.length} level(s) don't add up to their own "Total Documents" value:`);
+    lines.push('', `⚠ ${validation.mismatches.length} level(s) don't add up to their own Total Documents value:`);
     validation.mismatches.slice(0, 10).forEach((m) => {
-      lines.push(`  Level ${m.level} (${m.reward || 'untitled'}): costs sum to ${m.sum}, sheet says ${m.stated}`);
+      lines.push(`  Level ${m.level} (${m.reward || 'untitled'}): costs sum to ${m.sum}, should be ${m.stated}`);
     });
     if (validation.mismatches.length > 10) {
       lines.push(`  …and ${validation.mismatches.length - 10} more.`);
     }
   }
 
-  if (validation.grandTotal !== validation.expectedTotal) {
-    lines.push('', `⚠ Grand total across all levels is ${validation.grandTotal}, expected ${validation.expectedTotal} for this season.`);
+  if (validation.unknownLevels && validation.unknownLevels.length) {
+    lines.push('', `⚠ Ignored ${validation.unknownLevels.length} row(s) with a Level value that doesn't match any real level: ${validation.unknownLevels.slice(0, 10).join(', ')}${validation.unknownLevels.length > 10 ? ', …' : ''}`);
+  }
+
+  if (validation.rowsChecked > 0 && validation.grandTotal !== validation.expectedTotal) {
+    lines.push('', `⚠ Grand total across the rows imported is ${validation.grandTotal}, expected ${validation.expectedTotal} for the whole season (this is fine if you only imported some levels).`);
   }
 
   return lines.join('\n');
 }
 
-function applyImportResult({ documentTypes, levels }) {
-  const oldOwned = {};
-  MODE_ORDER.forEach((m) => { oldOwned[m] = { ...state.modes[m].owned }; });
-
-  state.documentTypes = documentTypes;
-  state.levels = levels;
-
-  MODE_ORDER.forEach((m) => {
-    const owned = {};
-    documentTypes.forEach((docType) => { owned[docType] = oldOwned[m][docType] || 0; });
-    state.modes[m].owned = owned;
+// Merges imported costs into state.levels by id — levels absent from the
+// sheet (or the whole rest of the season, if only a few rows were imported)
+// keep whatever cost they already had, never reset to empty.
+function applyImportedCosts(costsById) {
+  state.levels.forEach((level) => {
+    if (Object.prototype.hasOwnProperty.call(costsById, level.id)) {
+      level.cost = costsById[level.id];
+    }
   });
-
-  const validIds = new Set(levels.map((l) => l.id));
-  Object.keys(state.claims).forEach((id) => {
-    if (!validIds.has(Number(id))) delete state.claims[id];
-  });
-  viewedPage = null;
-
   persist();
   renderAll();
 }
 
+function costsByIdFromState() {
+  const costsById = {};
+  state.levels.forEach((level) => { costsById[level.id] = level.cost; });
+  return costsById;
+}
+
+async function exportSheet(format) {
+  const result = await window.tracker.exportSheet(format, costsByIdFromState());
+  if (result.exported) {
+    alert(`Exported to ${result.filePath}`);
+  } else if (result.reason !== 'canceled') {
+    alert(`Export failed: ${result.reason || 'unknown error'}`);
+  }
+}
+
+async function createStarterSheet(format) {
+  const lang = state.language || 'en';
+  const result = await window.tracker.createStarterSheet(format);
+  if (result.copied) {
+    alert(t(lang, 'settings.sheetCreated'));
+  } else if (result.reason === 'already-exists') {
+    alert(t(lang, 'settings.sheetAlreadyExists'));
+  }
+}
+
 // ---------- Levels editor ----------
 
+// Page/reward/item name/Total Documents are fixed (lib/battlepass-data.js
+// on the main-process side) — nothing here to add, delete, reorder, or
+// rename. Each card is just the one thing that's actually editable: this
+// level's cost, one numeric input per document type, always all 9 slots
+// shown (blank/0 same as "not needed"). A running sum next to the reward
+// name shows how close that add up to this level's known Total Documents.
 function renderLevelEditor() {
   const list = document.getElementById('level-editor-list');
-
-  if (!state.levels.length) {
-    list.innerHTML = `<div class="empty-state">${escapeHtml(t(state.language || 'en', 'settings.noLevelsYet'))}</div>`;
-    return;
-  }
-
+  const lang = state.language || 'en';
   list.innerHTML = '';
-  state.levels.forEach((level, index) => {
+
+  const sorted = [...state.levels].sort((a, b) => (a.page - b.page) || (a.id - b.id));
+  sorted.forEach((level) => {
     const card = document.createElement('div');
     card.className = 'tier-editor-card';
 
     const head = document.createElement('div');
     head.className = 'tier-editor-card-head';
 
-    const pageInput = document.createElement('input');
-    pageInput.type = 'number';
-    pageInput.min = '1';
-    pageInput.className = 'level-page-input';
-    pageInput.title = 'Page number';
-    pageInput.value = String(level.page || 1);
-    pageInput.addEventListener('change', () => {
-      level.page = Math.max(1, Number(pageInput.value) || 1);
-      persist();
-      viewedPage = null;
-      renderAll();
-    });
-
-    const rewardInput = document.createElement('input');
-    rewardInput.type = 'text';
-    rewardInput.placeholder = 'Reward name (e.g. "Weapon skin")';
-    rewardInput.value = level.reward || '';
-    rewardInput.addEventListener('change', () => {
-      level.reward = rewardInput.value;
-      persist();
-      renderPage();
-      renderLevelStatusList();
-    });
-
-    const moveBtns = document.createElement('div');
-    moveBtns.className = 'move-btns';
-
-    const upBtn = document.createElement('button');
-    upBtn.textContent = '↑';
-    upBtn.disabled = index === 0;
-    upBtn.addEventListener('click', () => moveLevel(index, -1));
-
-    const downBtn = document.createElement('button');
-    downBtn.textContent = '↓';
-    downBtn.disabled = index === state.levels.length - 1;
-    downBtn.addEventListener('click', () => moveLevel(index, 1));
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'danger';
-    deleteBtn.textContent = 'Delete Level';
-    deleteBtn.addEventListener('click', () => deleteLevel(level.id));
-
-    moveBtns.append(upBtn, downBtn);
-    head.append(pageInput);
     const photoUrlValue = photoUrl(level.itemName);
     if (photoUrlValue) {
       const photoEl = document.createElement('img');
@@ -1192,38 +1026,46 @@ function renderLevelEditor() {
       photoEl.alt = '';
       photoEl.src = photoUrlValue;
       photoEl.addEventListener('error', () => photoEl.remove());
-      head.append(photoEl);
+      head.appendChild(photoEl);
     }
-    head.append(rewardInput, moveBtns, deleteBtn);
 
-    const costList = document.createElement('div');
-    costList.className = 'req-list';
+    const info = document.createElement('div');
+    info.className = 'tier-editor-info';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'tier-editor-name';
+    nameEl.textContent = level.reward || t(lang, 'tile.untitledReward');
+    const metaEl = document.createElement('div');
+    metaEl.className = 'tier-editor-meta';
+    metaEl.textContent = t(lang, 'settings.levelMeta', { page: level.page, level: level.id });
+    info.append(nameEl, metaEl);
+    head.appendChild(info);
 
-    Object.entries(level.cost).forEach(([type, count]) => {
-      costList.appendChild(buildCostRow(level, type, count));
+    const sumEl = document.createElement('div');
+    sumEl.className = 'tier-editor-sum';
+    head.appendChild(sumEl);
+
+    const refreshSum = () => {
+      const sum = state.documentTypes.reduce((s, type) => s + (level.cost[type] || 0), 0);
+      sumEl.textContent = `${sum} / ${level.totalDocuments}`;
+      sumEl.className = 'tier-editor-sum' + (sum === level.totalDocuments ? ' met' : ' unmet');
+    };
+
+    const costGrid = document.createElement('div');
+    costGrid.className = 'cost-grid';
+    state.documentTypes.forEach((type) => {
+      costGrid.appendChild(buildLevelCostCell(level, type, refreshSum));
     });
 
-    const addCostBtn = document.createElement('button');
-    addCostBtn.textContent = '+ Add Document Cost';
-    addCostBtn.disabled = !state.documentTypes.length;
-    addCostBtn.title = state.documentTypes.length ? '' : 'Add a document type above first';
-    addCostBtn.addEventListener('click', () => {
-      const availableType = state.documentTypes.find((t) => !(t in level.cost));
-      if (!availableType) return;
-      level.cost[availableType] = 1;
-      persist();
-      renderLevelEditor();
-      renderPage();
-    });
+    refreshSum();
 
-    card.append(head, costList, addCostBtn);
+    card.append(head, costGrid);
     list.appendChild(card);
   });
 }
 
-function buildCostRow(level, type, count) {
-  const row = document.createElement('div');
-  row.className = 'req-row';
+function buildLevelCostCell(level, type, onUpdate) {
+  const cell = document.createElement('div');
+  cell.className = 'cost-grid-cell';
 
   const icon = document.createElement('img');
   icon.className = 'doc-type-icon-xs';
@@ -1234,67 +1076,22 @@ function buildCostRow(level, type, count) {
   icon.dataset.idx = '0';
   icon.addEventListener('error', () => docTypeIconFallback(icon));
   attachDocTypeTooltip(icon, type);
-  row.appendChild(icon);
 
-  const select = document.createElement('select');
-  state.documentTypes.forEach((t) => {
-    const opt = document.createElement('option');
-    opt.value = t;
-    opt.textContent = t;
-    opt.selected = t === type;
-    opt.disabled = t !== type && t in level.cost;
-    select.appendChild(opt);
-  });
-  select.addEventListener('change', () => {
-    const newType = select.value;
-    if (newType === type) return;
-    level.cost[newType] = level.cost[type];
-    delete level.cost[type];
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = '0';
+  input.value = String(level.cost[type] || 0);
+  input.addEventListener('change', () => {
+    const n = Math.max(0, Number(input.value) || 0);
+    if (n > 0) level.cost[type] = n;
+    else delete level.cost[type];
     persist();
-    renderLevelEditor();
-    renderPage();
+    onUpdate();
+    renderPage(); // reflect the new cost on the tile/needs-widget immediately
   });
 
-  const countInput = document.createElement('input');
-  countInput.type = 'number';
-  countInput.min = '0';
-  countInput.value = String(count);
-  countInput.addEventListener('change', () => {
-    level.cost[select.value] = Math.max(0, Number(countInput.value) || 0);
-    persist();
-    renderPage();
-  });
-
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'danger';
-  removeBtn.textContent = '×';
-  removeBtn.addEventListener('click', () => {
-    delete level.cost[select.value];
-    persist();
-    renderLevelEditor();
-    renderPage();
-  });
-
-  row.append(select, countInput, removeBtn);
-  return row;
-}
-
-function moveLevel(index, delta) {
-  const target = index + delta;
-  if (target < 0 || target >= state.levels.length) return;
-  const [level] = state.levels.splice(index, 1);
-  state.levels.splice(target, 0, level);
-  persist();
-  renderLevelEditor();
-}
-
-function deleteLevel(id) {
-  state.levels = state.levels.filter((l) => l.id !== id);
-  delete state.claims[id];
-  persist();
-  viewedPage = null;
-  renderLevelEditor();
-  renderAll();
+  cell.append(icon, input);
+  return cell;
 }
 
 // ---------- Manage section: compact all-levels status reference ----------

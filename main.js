@@ -1,8 +1,9 @@
-const { app, BrowserWindow, BrowserView, ipcMain, screen, shell } = require('electron');
+const { app, BrowserWindow, BrowserView, ipcMain, screen, shell, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const XLSX = require('xlsx');
-const { NON_DOC_COLUMNS } = require('./lib/xlsx-columns');
+const { DOCUMENT_TYPES, LEVELS } = require('./lib/battlepass-data');
+const { buildWorkbook } = require('./lib/build-sheet');
 
 app.setName('TarkovBattlepassTracker');
 
@@ -30,8 +31,6 @@ const CSV_SOURCE_PATH = path.join(app.getPath('userData'), 'battlepass.csv');
 // existing file from here to XLSX_SOURCE_PATH once, so upgrading from the
 // old layout doesn't lose anyone's already-filled-in document counts.
 const LEGACY_XLSX_SOURCE_PATH = path.join(__dirname, 'data-source', 'battlepass.xlsx');
-const XLSX_TEMPLATE_PATH = path.join(__dirname, 'data-source', 'battlepass.template.xlsx');
-const CSV_TEMPLATE_PATH = path.join(__dirname, 'data-source', 'battlepass.template.csv');
 const APP_ICON_PATH = path.join(__dirname, 'data-source', 'app_resources', 'black_div.ico');
 const XLSX_SHEET_NAME = 'pvp'; // misleadingly named — this one table applies to all three modes
 const MAP_URL = 'https://tarkovdocsmap.com/';
@@ -44,13 +43,17 @@ let mapView = null;
 let mapVisible = false;
 
 const DEFAULT_STATE = {
-  documentTypes: [],
+  // Document types and each level's structure (page/reward/item) are the
+  // season's fixed shape, not personal data — see lib/battlepass-data.js
+  // and syncStructuralData() below, which keeps this in sync with that file
+  // on every load rather than trusting whatever's already on disk.
+  documentTypes: [...DOCUMENT_TYPES],
   modes: {
     pve: { label: 'PVE', dailyCap: 15, owned: {} },
     pvp: { label: 'PVP', dailyCap: 20, owned: {} },
     pvpSeason: { label: 'PVP Season', dailyCap: 30, owned: {} },
   },
-  levels: [],
+  levels: LEVELS.map((l) => ({ id: l.id, page: l.page, reward: l.reward, itemName: l.itemName, totalDocuments: l.totalDocuments, cost: {} })),
   // Levels aren't claimed in strict order — the Battlepass is organized into pages
   // (the xlsx's Page column), and within an unlocked page any reward can be claimed
   // in any order. `claims` maps claimed level id -> { mode, forced }: which mode's
@@ -132,13 +135,35 @@ function migrateState(parsed) {
   if (out.unclaimMode === undefined) out.unclaimMode = false;
   if (!out.language) out.language = 'en';
   if (!out.pageThresholds) out.pageThresholds = { ...DEFAULT_STATE.pageThresholds };
-  // Levels saved before the Page column was captured (or manually added) default to
-  // page 1 so pagination doesn't break — re-import from battlepass.xlsx to fix properly.
-  if (Array.isArray(out.levels)) {
-    out.levels.forEach((l) => { if (l.page === undefined || l.page === null) l.page = 1; });
-  }
   delete out.lastMode;
   return out;
+}
+
+// Document types and every level's page/reward/item name are fixed for the
+// season (lib/battlepass-data.js) — not something a save file should be
+// trusted to define anymore. This rebuilds both from that single source of
+// truth on every load, keeping only each level's cost (the one field that's
+// actually personal) from whatever was already saved, matched by id. That
+// also means a future correction to battlepass-data.js (a typo fix, a
+// reward rename) reaches every existing save automatically, and it's what
+// actually migrates old saves — built the old way, from parsing a real
+// spreadsheet — onto the new model: their levels' ids and costs carry over
+// untouched, page/reward/item name just get rebuilt to match.
+function syncStructuralData(state) {
+  const savedCostById = {};
+  (state.levels || []).forEach((l) => {
+    if (l && l.id !== undefined) savedCostById[l.id] = l.cost || {};
+  });
+  state.levels = LEVELS.map((l) => ({
+    id: l.id,
+    page: l.page,
+    reward: l.reward,
+    itemName: l.itemName,
+    totalDocuments: l.totalDocuments,
+    cost: savedCostById[l.id] || {},
+  }));
+  state.documentTypes = [...DOCUMENT_TYPES];
+  return state;
 }
 
 function loadData() {
@@ -147,13 +172,14 @@ function loadData() {
     const raw = fs.readFileSync(DATA_FILE, 'utf8');
     const parsed = migrateState(JSON.parse(raw));
     // Merge with defaults so newly-added fields don't break older saves.
-    return {
+    const merged = {
       ...DEFAULT_STATE,
       ...parsed,
       modes: { ...DEFAULT_STATE.modes, ...(parsed.modes || {}) },
       pageThresholds: { ...DEFAULT_STATE.pageThresholds, ...(parsed.pageThresholds || {}) },
       claims: { ...(parsed.claims || {}) },
     };
+    return syncStructuralData(merged);
   } catch {
     return DEFAULT_STATE;
   }
@@ -179,7 +205,16 @@ function resolveSheetSourcePath() {
   return null;
 }
 
-function parseBattlepassXlsx() {
+// Reads whichever spreadsheet exists and pulls out ONLY costs, matched to
+// the hardcoded level list by the sheet's Level column. Page/Display Name/
+// Item Name/Total Documents in the sheet are never trusted as structure
+// anymore (see syncStructuralData) — an incoming file only ever needs a
+// Level column and the 9 known document-type columns to do anything useful,
+// so this is robust to an old-style full sheet, a minimal costs-only sheet,
+// or anything in between. Rows whose Level doesn't match a real level id are
+// skipped (reported in the returned validation) rather than erroring the
+// whole import.
+function importCosts() {
   const sourcePath = resolveSheetSourcePath();
   if (!sourcePath) {
     throw new Error(`No spreadsheet found at ${XLSX_SOURCE_PATH} or ${CSV_SOURCE_PATH}`);
@@ -190,57 +225,37 @@ function parseBattlepassXlsx() {
   const rows = XLSX.utils.sheet_to_json(sheet, { defval: null, raw: true });
   if (!rows.length) throw new Error(`Sheet "${sheetName}" has no rows.`);
 
-  const headers = Object.keys(rows[0]);
-  const docColumns = headers.filter((h) => !NON_DOC_COLUMNS.has(h.trim().toLowerCase()));
+  const levelById = new Map(LEVELS.map((l) => [l.id, l]));
+  const costsById = {};
+  // mismatches: rows whose cost columns don't add up to that level's known
+  // Total Documents. unknownLevels: Level values in the sheet that don't
+  // match any real level id (typo, stray footer row, wrong sheet, etc.).
+  const validation = { mismatches: [], unknownLevels: [], grandTotal: 0, expectedTotal: EXPECTED_SEASON_TOTAL, rowsChecked: 0 };
 
-  // Drop the totals footer row (blank Level) and any other blank rows; sort by Level
-  // in case the sheet isn't in row order.
-  const levelRows = rows
-    .filter((r) => r['Level'] !== null && r['Level'] !== '' && r['Level'] !== undefined)
-    .sort((a, b) => Number(a['Level']) - Number(b['Level']));
-
-  const documentTypes = docColumns.map((c) => c.trim());
-
-  const levels = levelRows.map((r) => {
+  rows.forEach((r) => {
+    const levelId = Number(r['Level']);
+    if (!Number.isFinite(levelId)) return; // blank/footer row — not an error, just skip
+    const level = levelById.get(levelId);
+    if (!level) {
+      validation.unknownLevels.push(levelId);
+      return;
+    }
     const cost = {};
-    docColumns.forEach((col) => {
-      const n = Number(r[col]) || 0;
-      if (n > 0) cost[col.trim()] = n;
+    let sum = 0;
+    DOCUMENT_TYPES.forEach((type) => {
+      const n = Number(r[type]) || 0;
+      if (n > 0) cost[type] = n;
+      sum += n;
     });
-    return {
-      id: Number(r['Level']),
-      page: Number(r['Page']) || 1,
-      reward: (r['Display Name'] || '').toString().trim(),
-      itemName: (r['Item Name'] || '').toString().trim(),
-      cost,
-    };
-  });
-
-  // "Total Documents" is a column the sheet already has per level, meant as
-  // a self-check while filling it in: the per-type breakdown is personal
-  // (a friend's sheet had different numbers per type for the same level),
-  // so this catches the far more likely mistake — a typo/skipped cell that
-  // makes one row's costs not add up to what that row itself says it should.
-  // Rows without a usable "Total Documents" value are skipped (older sheets
-  // won't have this column at all) rather than treated as mismatches.
-  const validation = { mismatches: [], grandTotal: 0, expectedTotal: EXPECTED_SEASON_TOTAL, rowsChecked: 0 };
-  levelRows.forEach((r) => {
-    const stated = Number(r['Total Documents']);
-    if (!Number.isFinite(stated)) return;
+    costsById[levelId] = cost;
     validation.rowsChecked += 1;
-    validation.grandTotal += stated;
-    const sum = docColumns.reduce((s, col) => s + (Number(r[col]) || 0), 0);
-    if (sum !== stated) {
-      validation.mismatches.push({
-        level: Number(r['Level']),
-        reward: (r['Display Name'] || '').toString().trim(),
-        sum,
-        stated,
-      });
+    validation.grandTotal += sum;
+    if (sum !== level.totalDocuments) {
+      validation.mismatches.push({ level: levelId, reward: level.reward, sum, stated: level.totalDocuments });
     }
   });
 
-  return { documentTypes, levels, sheetName, validation };
+  return { costsById, sheetName, validation };
 }
 
 // Default launch size as a fraction of the primary display's usable area
@@ -338,24 +353,43 @@ ipcMain.handle('data:factoryReset', () => {
   return DEFAULT_STATE;
 });
 
-ipcMain.handle('data:importXlsx', () => parseBattlepassXlsx());
+ipcMain.handle('data:importCosts', () => importCosts());
 
-// Fresh clone/install: neither battlepass.xlsx nor battlepass.csv exists
-// yet (both personal — see scripts/generate-template.js), so nothing's
-// there until a user creates one. These back the first-run "let's set you
-// up" flow in the renderer instead of a raw file-not-found error the first
-// time someone hits Import. format is 'xlsx' or 'csv' — the onboarding
-// screen offers both as separate buttons (CSV needs no spreadsheet software
-// at all, just a text editor — see the CSV_SOURCE_PATH comment above).
+// Editing costs in-app is the primary workflow now (levels/document types
+// are fixed, so there's nothing structural left to import) — a spreadsheet
+// is a secondary option for anyone who'd rather fill in ~9 numbers across
+// 53 rows in a real grid, or wants a backup/export. format is 'xlsx' or
+// 'csv' (CSV needs no spreadsheet software at all, just a text editor —
+// see the CSV_SOURCE_PATH comment above).
 ipcMain.handle('data:xlsxSourceExists', () => resolveSheetSourcePath() !== null);
-ipcMain.handle('data:copyTemplate', (e, format) => {
+// Creates a blank starter spreadsheet at the canonical userData location —
+// built fresh via buildWorkbook() (no separate template file to keep in
+// sync; it's the exact same function Export uses, just with no costs).
+// Never overwrites an existing xlsx/csv.
+ipcMain.handle('data:createStarterSheet', (e, format) => {
   const destPath = format === 'csv' ? CSV_SOURCE_PATH : XLSX_SOURCE_PATH;
-  const templatePath = format === 'csv' ? CSV_TEMPLATE_PATH : XLSX_TEMPLATE_PATH;
   if (resolveSheetSourcePath()) return { copied: false, reason: 'already-exists' };
-  if (!fs.existsSync(templatePath)) return { copied: false, reason: 'no-template' };
   fs.mkdirSync(path.dirname(destPath), { recursive: true });
-  fs.copyFileSync(templatePath, destPath);
+  XLSX.writeFile(buildWorkbook(), destPath);
   return { copied: true };
+});
+
+// "Export spreadsheet" in Settings — builds a full sheet (season structure
+// + the caller's current costsById) via the same lib/build-sheet.js the
+// blank template uses, and lets the user pick exactly where to save it
+// (a real Save dialog, not a silent overwrite) — useful as a backup before
+// a Full Reset, or to hand a copy to someone else.
+ipcMain.handle('data:exportSheet', async (e, { format, costsById }) => {
+  const ext = format === 'csv' ? 'csv' : 'xlsx';
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+    title: 'Export spreadsheet',
+    defaultPath: path.join(app.getPath('documents'), `battlepass-export.${ext}`),
+    filters: ext === 'csv' ? [{ name: 'CSV', extensions: ['csv'] }] : [{ name: 'Excel Workbook', extensions: ['xlsx'] }],
+  });
+  if (canceled || !filePath) return { exported: false, reason: 'canceled' };
+  const wb = buildWorkbook(costsById || {});
+  XLSX.writeFile(wb, filePath);
+  return { exported: true, filePath };
 });
 
 // Used by Settings' Feedback button and the Reddit credit link — only ever

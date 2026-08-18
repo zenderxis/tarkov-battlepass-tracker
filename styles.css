@@ -598,6 +598,12 @@ html, body {
   margin-bottom: 10px;
 }
 
+.reward-tile-cost-missing {
+  font-size: 11px;
+  font-style: italic;
+  color: #6a6f7b;
+}
+
 .tile-cost-icon {
   display: inline-flex;
   flex-direction: column;
@@ -1280,6 +1286,16 @@ button.danger:hover {
 /* Visually set apart from the spreadsheet toolbar above it — these two
    buttons are destructive and irreversible, so a border + its own heading
    keeps them from blending in with routine setup actions. */
+.create-sheet-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.create-sheet-row .hint {
+  margin: 0;
+}
+
 .reset-zone {
   padding-top: 14px;
   border-top: 1px solid #26282f;
@@ -1340,46 +1356,56 @@ button.danger:hover {
   margin-bottom: 10px;
 }
 
-.level-page-input {
-  width: 44px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.tier-editor-card-head input[type="text"] {
+.tier-editor-info {
   flex: 1;
+  min-width: 0;
 }
 
-.tier-editor-card-head .move-btns {
-  display: flex;
-  gap: 4px;
+.tier-editor-name {
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.req-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 10px;
+.tier-editor-meta {
+  font-size: 11px;
+  color: #6a6f7b;
+  margin-top: 2px;
 }
 
-.req-row {
-  display: flex;
-  align-items: center;
+/* Running sum of this card's cost inputs vs. the level's known Total
+   Documents — green once they match, red otherwise, same met/unmet
+   language as everywhere else costs get compared against a target. */
+.tier-editor-sum {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #e2565b;
+}
+
+.tier-editor-sum.met {
+  color: #6fce7f;
+}
+
+.cost-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
   gap: 8px;
 }
 
-.req-row select {
-  flex: 1;
+.cost-grid-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: #14161a;
   border: 1px solid #26282f;
   border-radius: 6px;
-  color: #e8e9ec;
-  padding: 6px 8px;
-  font-size: 12px;
+  padding: 5px 8px;
 }
 
-.req-row input[type="number"] {
-  width: 70px;
+.cost-grid-cell input[type="number"] {
+  width: 100%;
+  min-width: 0;
+  text-align: center;
 }
 
 /* Map */

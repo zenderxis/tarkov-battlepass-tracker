@@ -1,55 +1,54 @@
-﻿Page,Level,Display Name,Item Name,Type,Blueprints and technical documentation,Project documentation,Financial documents,PMC personell files,Medical documents,User documentation,Test documentation,Technical documentation,Classified documents,Total Documents
-1,1,Marked dogtag (Grey),marked_dogtag_grey,dogtag,0,0,0,0,0,0,0,0,0,1
-1,2,TarCoin,tarcoin,currency,0,0,0,0,0,0,0,0,0,3
-1,3,BURN poster,burn_poster,poster,0,0,0,0,0,0,0,0,0,3
-1,4,Black Division gear crate,black_division_gear_crate,loot container,0,0,0,0,0,0,0,0,0,3
-1,5,Black wood ceiling,black_wood_ceiling,hideout customization,0,0,0,0,0,0,0,0,0,5
-2,6,Gentex Ops-Core SOTR respirator,gentex_ops-core_sotr_respirator,trade offer,0,0,0,0,0,0,0,0,0,4
-2,7,Red Hawaii,red_hawaii,tactical clothing,0,0,0,0,0,0,0,0,0,7
-2,8,Black Division gear crate,black_division_gear_crate,loot container,0,0,0,0,0,0,0,0,0,3
-2,9,Scorpion Target,scorpion_target,hideout customization,0,0,0,0,0,0,0,0,0,3
-2,10,TarCoin,tarcoin,currency,0,0,0,0,0,0,0,0,0,3
-3,11,Mystery Ranch NICE Frame Load Sling,mystery_ranch_nice_frame_load_sling,trade offer,0,0,0,0,0,0,0,0,0,4
-3,12,Black Division gear crate,black_division_gear_crate,loot container,0,0,0,0,0,0,0,0,0,5
-3,13,Black Herringbone,black_herringbone,hideout customization,0,0,0,0,0,0,0,0,0,7
-3,14,TarCoin,tarcoin,currency,0,0,0,0,0,0,0,0,0,5
-3,15,Heart,heart,pose,0,0,0,0,0,0,0,0,0,4
-4,16,Marked dogtag (Green),marked_dogtag_green,dogtag,0,0,0,0,0,0,0,0,0,5
-4,17,Microtech Jagdkommando knife,microtech_jagdkommando_knife,melee weapon,0,0,0,0,0,0,0,0,0,10
-4,18,TarCoin,tarcoin,currency,0,0,0,0,0,0,0,0,0,5
-4,19,Beware the Bear poster,beware_the_bear_poster,poster,0,0,0,0,0,0,0,0,0,5
-4,20,Black Division gear crate,black_division_gear_crate,loot container,0,0,0,0,0,0,0,0,0,5
-5,21,Orange Hawaii,orange_hawaii,tactical clothing,0,0,0,0,0,0,0,0,0,10
-5,22,TarCoin,tarcoin,currency,0,0,0,0,0,0,0,0,0,7
-5,23,Black Division target,black_division_target,hideout customization,0,0,0,0,0,0,0,0,0,5
-5,24,Black Division gear crate,black_division_gear_crate,loot container,0,0,0,0,0,0,0,0,0,6
-5,25,Ferro Concepts FCPC V5 Plate Carrier (Black Division),ferro_concepts_fcpc_5_plate_carrier_black_division,trade offer,0,0,0,0,0,0,0,0,0,7
-6,26,Knyazev,knyazev,pmc face,0,0,0,0,0,0,0,0,0,13
-6,27,O'Connor,oconnor,pmc face,0,0,0,0,0,0,0,0,0,12
-6,28,Howa Type 20 5.56x45 assault rifle,howa_type_20_5.56x45_assault_rifle,trade offer,0,0,0,0,0,0,0,0,0,11
-7,29,Marked dogtag (Red),marked_dogtag_red,dogtag,0,0,0,0,0,0,0,0,0,10
-7,30,TarCoin,tarcoin,currency,0,0,0,0,0,0,0,0,0,9
-7,31,Scorpion upper,scorpion_upper,tactical clothing,0,0,0,0,0,0,0,0,0,13
-7,32,Scorpion lower,scorpion_lower,tactical clothing,0,0,0,0,0,0,0,0,0,13
-8,33,Black Division gear crate,black_division_gear_crate,loot container,0,0,0,0,0,0,0,0,0,6
-8,34,TarCoin,tarcoin,currency,0,0,0,0,0,0,0,0,0,14
-8,35,White accent walls,white_accent_walls,hideout customization,0,0,0,0,0,0,0,0,0,13
-8,36,Arch,arch,pose,0,0,0,0,0,0,0,0,0,6
-8,37,Dome,dome,pose,0,0,0,0,0,0,0,0,0,4
-9,38,Spiritus Systems LV-119 Plate Carrier (Black Divison V2),spiritus_systems_lv-119_plate_carrier_black_division_v2,trade offer,0,0,0,0,0,0,0,0,0,12
-9,39,TarCoin,tarcoin,currency,0,0,0,0,0,0,0,0,0,6
-9,40,Tasmanian Tiger Modular Pack 45 Plus (MultiCam Black),tasmanian_tiger_modular_pack_45_plus_multicam_black,trade offer,0,0,0,0,0,0,0,0,0,9
-9,41,Black Division gear crate,black_division_gear_crate,loot container,0,0,0,0,0,0,0,0,0,5
-9,42,Server Room,server_room,main menu background,0,0,0,0,0,0,0,0,0,18
-10,43,Anton,anton,pmc voice,0,0,0,0,0,0,0,0,0,20
-10,44,Garrett,garrett,pmc voice,0,0,0,0,0,0,0,0,0,20
-10,45,Black Division gear crate,black_division_gear_crate,loot container,0,0,0,0,0,0,0,0,0,7
-10,46,TarCoin,tarcoin,currency,0,0,0,0,0,0,0,0,0,13
-11,47,Marked dogtag (Red Bullet Hole),marked_dogtag_red_bullet_hole,dogtag,0,0,0,0,0,0,0,0,0,11
-11,48,TarCoin,tarcoin,currency,0,0,0,0,0,0,0,0,0,16
-11,49,Knyazev (After Battle),knyazev_after_battle,pmc face,0,0,0,0,0,0,0,0,0,19
-11,50,O'Connor (After Battle),oconnor_after_battle,pmc face,0,0,0,0,0,0,0,0,0,19
-12,51,Norinco QBZ-191 5.8x42 assault rifle,norinco_qbz-191_5.8x42_assault_rifle,trade offer,0,0,0,0,0,0,0,0,0,29
-12,52,Nocturnal upper,nocturnal_upper,tactical clothing,0,0,0,0,0,0,0,0,0,25
-12,53,Nocturnal lower,nocturnal_lower,tactical clothing,0,0,0,0,0,0,0,0,0,23
-,,,,,0,0,0,0,0,0,0,0,0,501
+﻿Page,Level,Display Name,Item Name,Financial documents,PMC personell files,Project documentation,Blueprints and technical documentation,Test documentation,User documentation,Medical documents,Technical documentation,Classified documents,Doc Count,Total Documents
+1,1,Marked dogtag (Grey),marked_dogtag_grey,0,0,0,0,0,0,0,0,0,0,1
+1,2,TarCoin,tarcoin,0,0,0,0,0,0,0,0,0,0,3
+1,3,BURN poster,burn_poster,0,0,0,0,0,0,0,0,0,0,3
+1,4,Black Division gear crate,black_division_gear_crate,0,0,0,0,0,0,0,0,0,0,3
+1,5,Black wood ceiling,black_wood_ceiling,0,0,0,0,0,0,0,0,0,0,5
+2,6,Gentex Ops-Core SOTR respirator,gentex_ops-core_sotr_respirator,0,0,0,0,0,0,0,0,0,0,4
+2,7,Red Hawaii,red_hawaii,0,0,0,0,0,0,0,0,0,0,7
+2,8,Black Division gear crate,black_division_gear_crate,0,0,0,0,0,0,0,0,0,0,3
+2,9,Scorpion Target,scorpion_target,0,0,0,0,0,0,0,0,0,0,3
+2,10,TarCoin,tarcoin,0,0,0,0,0,0,0,0,0,0,3
+3,11,Mystery Ranch NICE Frame Load Sling,mystery_ranch_nice_frame_load_sling,0,0,0,0,0,0,0,0,0,0,4
+3,12,Black Division gear crate,black_division_gear_crate,0,0,0,0,0,0,0,0,0,0,5
+3,13,Black Herringbone,black_herringbone,0,0,0,0,0,0,0,0,0,0,7
+3,14,TarCoin,tarcoin,0,0,0,0,0,0,0,0,0,0,5
+3,15,Heart,heart,0,0,0,0,0,0,0,0,0,0,4
+4,16,Marked dogtag (Green),marked_dogtag_green,0,0,0,0,0,0,0,0,0,0,5
+4,17,Microtech Jagdkommando knife,microtech_jagdkommando_knife,0,0,0,0,0,0,0,0,0,0,10
+4,18,TarCoin,tarcoin,0,0,0,0,0,0,0,0,0,0,5
+4,19,Beware the Bear poster,beware_the_bear_poster,0,0,0,0,0,0,0,0,0,0,5
+4,20,Black Division gear crate,black_division_gear_crate,0,0,0,0,0,0,0,0,0,0,5
+5,21,Orange Hawaii,orange_hawaii,0,0,0,0,0,0,0,0,0,0,10
+5,22,TarCoin,tarcoin,0,0,0,0,0,0,0,0,0,0,7
+5,23,Black Division target,black_division_target,0,0,0,0,0,0,0,0,0,0,5
+5,24,Black Division gear crate,black_division_gear_crate,0,0,0,0,0,0,0,0,0,0,6
+5,25,Ferro Concepts FCPC V5 Plate Carrier (Black Division),ferro_concepts_fcpc_5_plate_carrier_black_division,0,0,0,0,0,0,0,0,0,0,7
+6,26,Knyazev,knyazev,0,0,0,0,0,0,0,0,0,0,13
+6,27,O'Connor,oconnor,0,0,0,0,0,0,0,0,0,0,12
+6,28,Howa Type 20 5.56x45 assault rifle,howa_type_20_5.56x45_assault_rifle,0,0,0,0,0,0,0,0,0,0,11
+7,29,Marked dogtag (Red),marked_dogtag_red,0,0,0,0,0,0,0,0,0,0,10
+7,30,TarCoin,tarcoin,0,0,0,0,0,0,0,0,0,0,9
+7,31,Scorpion upper,scorpion_upper,0,0,0,0,0,0,0,0,0,0,13
+7,32,Scorpion lower,scorpion_lower,0,0,0,0,0,0,0,0,0,0,13
+8,33,Black Division gear crate,black_division_gear_crate,0,0,0,0,0,0,0,0,0,0,6
+8,34,TarCoin,tarcoin,0,0,0,0,0,0,0,0,0,0,14
+8,35,White accent walls,white_accent_walls,0,0,0,0,0,0,0,0,0,0,13
+8,36,Arch,arch,0,0,0,0,0,0,0,0,0,0,6
+8,37,Dome,dome,0,0,0,0,0,0,0,0,0,0,4
+9,38,Spiritus Systems LV-119 Plate Carrier (Black Divison V2),spiritus_systems_lv-119_plate_carrier_black_division_v2,0,0,0,0,0,0,0,0,0,0,12
+9,39,TarCoin,tarcoin,0,0,0,0,0,0,0,0,0,0,6
+9,40,Tasmanian Tiger Modular Pack 45 Plus (MultiCam Black),tasmanian_tiger_modular_pack_45_plus_multicam_black,0,0,0,0,0,0,0,0,0,0,9
+9,41,Black Division gear crate,black_division_gear_crate,0,0,0,0,0,0,0,0,0,0,5
+9,42,Server Room,server_room,0,0,0,0,0,0,0,0,0,0,18
+10,43,Anton,anton,0,0,0,0,0,0,0,0,0,0,20
+10,44,Garrett,garrett,0,0,0,0,0,0,0,0,0,0,20
+10,45,Black Division gear crate,black_division_gear_crate,0,0,0,0,0,0,0,0,0,0,7
+10,46,TarCoin,tarcoin,0,0,0,0,0,0,0,0,0,0,13
+11,47,Marked dogtag (Red Bullet Hole),marked_dogtag_red_bullet_hole,0,0,0,0,0,0,0,0,0,0,11
+11,48,TarCoin,tarcoin,0,0,0,0,0,0,0,0,0,0,16
+11,49,Knyazev (After Battle),knyazev_after_battle,0,0,0,0,0,0,0,0,0,0,19
+11,50,O'Connor (After Battle),oconnor_after_battle,0,0,0,0,0,0,0,0,0,0,19
+12,51,Norinco QBZ-191 5.8x42 assault rifle,norinco_qbz-191_5.8x42_assault_rifle,0,0,0,0,0,0,0,0,0,0,29
+12,52,Nocturnal upper,nocturnal_upper,0,0,0,0,0,0,0,0,0,0,25
+12,53,Nocturnal lower,nocturnal_lower,0,0,0,0,0,0,0,0,0,0,23
