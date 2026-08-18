@@ -19,4 +19,5 @@ contextBridge.exposeInMainWorld('tracker', {
   openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
   openBattlepassXlsx: () => ipcRenderer.invoke('shell:openXlsx'),
   openBackupsFolder: () => ipcRenderer.invoke('shell:openBackupsFolder'),
+  backupNow: () => ipcRenderer.invoke('data:backupNow'),
 });

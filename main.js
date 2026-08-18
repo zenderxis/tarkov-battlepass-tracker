@@ -26,11 +26,13 @@ const XLSX_SOURCE_PATH = path.join(app.getPath('userData'), 'battlepass.xlsx');
 // of resolveSheetSourcePath() needs to know or care which one a given user
 // picked.
 const CSV_SOURCE_PATH = path.join(app.getPath('userData'), 'battlepass.csv');
-// Rolling daily backups of data.json — see maybeBackupBeforeSave() below.
-// Cheap insurance against a bad edit or an accidental Full Reset, since
-// there's otherwise exactly one copy of a user's progress/costs anywhere.
+// Rolling backups of data.json — one automatic per calendar day (see
+// maybeBackupBeforeSave() below) plus as many manual ones as "Back up now"
+// in Settings gets clicked (see backupNow() below). Cheap insurance against
+// a bad edit or an accidental Full Reset, since there's otherwise exactly
+// one copy of a user's progress/costs anywhere.
 const BACKUPS_DIR = path.join(app.getPath('userData'), 'backups');
-const MAX_BACKUPS = 14;
+const MAX_BACKUPS = 20;
 // Where battlepass.xlsx used to live, back when this only ever ran from
 // source (`npm start`, no installer). migrateLegacyXlsx() below moves an
 // existing file from here to XLSX_SOURCE_PATH once, so upgrading from the
@@ -206,31 +208,62 @@ function saveData(state) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 2));
 }
 
+// data-2026-08-18T14-30-05.json — colons swapped for dashes since Windows
+// filenames can't contain them. Used for both the automatic daily backup
+// and manual ones, so every file in the folder sorts correctly by name
+// regardless of which path created it.
+function backupFileName(date = new Date()) {
+  return `data-${date.toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+}
+
 // saveData() runs on nearly every keystroke (persist() in renderer.js), so
 // backing up on every call would flood the folder with near-duplicates —
 // instead, at most once per calendar day, snapshot whatever's currently on
 // disk (the end state of the last save before today) before it gets
-// overwritten. Best-effort: a backup failure should never block an actual
-// save, so errors are swallowed rather than surfaced.
+// overwritten. If a manual backup (see backupNow() below) already happened
+// today, that counts too — no need for a second one. Best-effort: a backup
+// failure should never block an actual save, so errors are swallowed
+// rather than surfaced.
 function maybeBackupBeforeSave() {
   if (!fs.existsSync(DATA_FILE)) return;
-  const dateStamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const backupPath = path.join(BACKUPS_DIR, `data-${dateStamp}.json`);
-  if (fs.existsSync(backupPath)) return;
   try {
     fs.mkdirSync(BACKUPS_DIR, { recursive: true });
-    fs.copyFileSync(DATA_FILE, backupPath);
+    const todayPrefix = `data-${new Date().toISOString().slice(0, 10)}`;
+    const hasToday = fs.readdirSync(BACKUPS_DIR).some((f) => f.startsWith(todayPrefix));
+    if (hasToday) return;
+    fs.copyFileSync(DATA_FILE, path.join(BACKUPS_DIR, backupFileName()));
     pruneOldBackups();
   } catch {
     // Best-effort — see comment above.
   }
 }
 
+// "Back up now" button in Settings — always creates a fresh snapshot
+// immediately, unlike the once-a-day automatic check above, since the whole
+// point of a manual trigger is capturing this exact moment (e.g. right
+// before testing a Full Reset).
+function backupNow() {
+  if (!fs.existsSync(DATA_FILE)) return { backedUp: false, reason: 'no-data' };
+  try {
+    fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+    const fileName = backupFileName();
+    fs.copyFileSync(DATA_FILE, path.join(BACKUPS_DIR, fileName));
+    pruneOldBackups();
+    return { backedUp: true, fileName };
+  } catch (err) {
+    return { backedUp: false, reason: 'error', error: err.message || String(err) };
+  }
+}
+
 function pruneOldBackups() {
   try {
+    // Matches both the current data-YYYY-MM-DDTHH-mm-ss.json format and the
+    // older date-only data-YYYY-MM-DD.json format (from before manual
+    // backups existed), so files from either era get counted and pruned
+    // together rather than the old ones silently piling up forever.
     const files = fs.readdirSync(BACKUPS_DIR)
-      .filter((f) => /^data-\d{4}-\d{2}-\d{2}\.json$/.test(f))
-      .sort(); // ISO date filenames sort chronologically as plain strings
+      .filter((f) => /^data-\d{4}-\d{2}-\d{2}(T\d{2}-\d{2}-\d{2})?\.json$/.test(f))
+      .sort(); // these filenames sort chronologically as plain strings
     const excess = files.length - MAX_BACKUPS;
     if (excess > 0) {
       files.slice(0, excess).forEach((f) => fs.unlinkSync(path.join(BACKUPS_DIR, f)));
@@ -475,6 +508,8 @@ ipcMain.handle('shell:openBackupsFolder', async () => {
   const err = await shell.openPath(BACKUPS_DIR);
   return err ? { opened: false, reason: 'shell-error', error: err } : { opened: true };
 });
+
+ipcMain.handle('data:backupNow', () => backupNow());
 
 ipcMain.handle('map:open', () => {
   ensureMapView();

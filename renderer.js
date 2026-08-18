@@ -165,6 +165,18 @@ function wireStaticControls() {
   document.getElementById('create-xlsx-btn').addEventListener('click', () => createStarterSheet('xlsx'));
   document.getElementById('create-csv-btn').addEventListener('click', () => createStarterSheet('csv'));
 
+  document.getElementById('backup-now-btn').addEventListener('click', async () => {
+    const lang = state.language || 'en';
+    const result = await window.tracker.backupNow();
+    if (result.backedUp) {
+      alert(t(lang, 'settings.backupNowSuccess', { fileName: result.fileName }));
+    } else if (result.reason === 'no-data') {
+      alert(t(lang, 'settings.backupNowNoData'));
+    } else {
+      alert(t(lang, 'settings.backupNowError', { error: result.error || 'unknown error' }));
+    }
+  });
+
   document.getElementById('open-backups-btn').addEventListener('click', async () => {
     const result = await window.tracker.openBackupsFolder();
     if (!result.opened) alert(`Couldn't open the backups folder: ${result.error || 'unknown error'}`);
