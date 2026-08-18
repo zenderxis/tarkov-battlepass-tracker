@@ -63,7 +63,7 @@ Everything personal to you — `data.json` (owned document counts, claimed rewar
 
 ## Feedback / issues
 
-Use the **Feedback** button in Settings, or open an issue directly on this repo.
+Use the **Report Issue** button in Settings, or open an issue directly on this repo.
 
 ## Notes for future seasons
 

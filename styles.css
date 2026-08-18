@@ -695,6 +695,12 @@ html, body {
   padding: 0 14px;
 }
 
+#about-section p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #c9cdd6;
+}
+
 .settings-section[open] {
   padding-bottom: 14px;
 }
@@ -1045,6 +1051,35 @@ html, body {
   margin-bottom: 5px;
 }
 
+/* Collapsed by default — a settings row explaining what it does on demand
+   ("What is this?") rather than always showing a full paragraph, so the
+   Claim Mode / Unclaim Mode rows read as compact toggles at a glance. */
+.hint-toggle summary {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6a6f7b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.hint-toggle summary::-webkit-details-marker {
+  display: none;
+}
+
+.hint-toggle summary:hover {
+  color: #9aa0ac;
+}
+
+.hint-toggle[open] summary {
+  margin-bottom: 4px;
+}
+
+.hint-toggle .hint {
+  margin: 0;
+}
+
 .claim-mode-row .hint {
   max-width: 440px;
 }
@@ -1234,6 +1269,12 @@ button.danger:hover {
   display: flex;
   align-items: center;
   gap: 14px;
+}
+
+.button-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* Buttons have no white-space/flex-shrink rule by default, so once

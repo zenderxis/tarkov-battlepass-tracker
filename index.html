@@ -103,18 +103,26 @@
         <button class="win-btn" id="settings-close" title="Close settings" aria-label="Close settings" data-i18n-title="settings.closeAria" data-i18n-aria="settings.closeAria">&#xE8BB;</button>
       </div>
 
+      <details class="settings-section" id="about-section">
+        <summary data-i18n="settings.aboutButton">About</summary>
+        <p data-i18n="settings.aboutBody">How the spreadsheet works: each Battlepass level costs a set number of documents, split across types like Financial, Medical, or PMC files. The total for a level is the same for everyone, but which types make it up is personal to you — that's why there's no pre-filled spreadsheet. Fill in your own per-type counts for each level (Excel or CSV, your choice), keeping each row's document-type columns adding up to its Total Documents value. Then use Import spreadsheet below to load those costs into the app. Claiming and unclaiming rewards happens here in the app — the spreadsheet only ever defines what each level costs, not your progress.</p>
+      </details>
+
       <div class="settings-topbar">
         <div class="language-picker">
           <label for="language-select" data-i18n="settings.language">Language</label>
           <select id="language-select"><!-- populated by renderer.js from LANGUAGES --></select>
         </div>
-        <button id="feedback-btn" data-i18n="settings.feedback">Feedback</button>
+        <button id="report-issue-btn" data-i18n="settings.reportIssue">Report Issue</button>
       </div>
 
       <div class="claim-mode-row">
         <div class="claim-mode-info">
           <div class="claim-mode-title" data-i18n="settings.claimModeTitle">Claim Mode</div>
-          <div class="hint" data-i18n="settings.claimModeHint">When on, claiming any reward skips the document-cost check entirely — nothing is required or deducted. An override for corrections, not normal play.</div>
+          <details class="hint-toggle">
+            <summary data-i18n="common.whatIsThis">What is this?</summary>
+            <p class="hint" data-i18n="settings.claimModeHint">When on, claiming any reward skips the document-cost check entirely — nothing is required or deducted. An override for corrections, not normal play.</p>
+          </details>
         </div>
         <button id="claim-mode-toggle" class="toggle-btn">Off</button>
       </div>
@@ -122,14 +130,19 @@
       <div class="claim-mode-row">
         <div class="claim-mode-info">
           <div class="claim-mode-title" data-i18n="settings.unclaimModeTitle">Unclaim Mode</div>
-          <div class="hint" data-i18n="settings.unclaimModeHint">When off, the Unclaim button doesn't show up on claimed rewards at all, so a claim can't be undone by accident. Turn this on to unclaim something (and refund its documents, unless it was claimed via Claim Mode).</div>
+          <details class="hint-toggle">
+            <summary data-i18n="common.whatIsThis">What is this?</summary>
+            <p class="hint" data-i18n="settings.unclaimModeHint">When off, the Unclaim button doesn't show up on claimed rewards at all, so a claim can't be undone by accident. Turn this on to unclaim something (and refund its documents, unless it was claimed via Claim Mode).</p>
+          </details>
         </div>
         <button id="unclaim-mode-toggle" class="toggle-btn">Off</button>
       </div>
 
       <div class="tiers-toolbar">
-        <button id="import-xlsx-btn" data-i18n="settings.importButton">Import spreadsheet</button>
-        <button id="open-xlsx-btn" data-i18n="settings.openXlsxButton">Open spreadsheet</button>
+        <div class="button-stack">
+          <button id="import-xlsx-btn" data-i18n="settings.importButton">Import spreadsheet</button>
+          <button id="open-xlsx-btn" data-i18n="settings.openXlsxButton">Open spreadsheet</button>
+        </div>
         <span class="hint" data-i18n="settings.importHint">Each level has its own standalone document cost (not cumulative with other levels), shared across all game modes. Editing <code>battlepass.xlsx</code> (or <code>.csv</code>) directly and re-importing is usually easier than hand-editing here.</span>
       </div>
 

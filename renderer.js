@@ -82,7 +82,7 @@ function wireStaticControls() {
     renderAll();
   });
 
-  document.getElementById('feedback-btn').addEventListener('click', () => {
+  document.getElementById('report-issue-btn').addEventListener('click', () => {
     window.tracker.openExternal(`${GITHUB_REPO_URL}/issues/new`);
   });
 
