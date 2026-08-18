@@ -12,7 +12,7 @@ Not affiliated with Battlestate Games. "Escape from Tarkov" and "Battlepass" are
 - **Claim Mode** — an override to mark a reward claimed without the document-cost check (for corrections, not normal play).
 - **Unclaim Mode** — off by default, so a claimed reward can't be undone by an accidental click; turn it on when you actually need to undo one.
 - **Document map tooltips** — hover any document type to see which maps it drops on, sourced from [tarkovdocsmap.com](https://tarkovdocsmap.com/) (also embedded in its own tab).
-- **10-language UI** — the app's own interface (not the map data) is available in English, Russian, Japanese, Chinese, Korean, Turkish, Spanish, German, Italian, and French. See [i18n.js](i18n.js) for exactly what is and isn't translated, and why.
+- **18-language UI** — the app's own interface (not the map data) is available in English, Russian, Japanese, Chinese, Korean, Turkish, Spanish (Spain), Spanish (Mexico), German, Italian, French, Czech, Hungarian, Polish, Portuguese, Slovak, Romanian, and Vietnamese. See [i18n.js](i18n.js) for exactly what is and isn't translated, and why.
 - Everything's driven by a spreadsheet you fill in yourself — see **Setting up your own data** below.
 
 ## Getting started
