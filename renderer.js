@@ -127,6 +127,14 @@ function wireStaticControls() {
 
   document.getElementById('import-xlsx-btn').addEventListener('click', importFromXlsx);
 
+  document.getElementById('open-xlsx-btn').addEventListener('click', async () => {
+    const result = await window.tracker.openBattlepassXlsx();
+    if (!result.opened) {
+      const lang = state.language || 'en';
+      alert(result.reason === 'no-file' ? t(lang, 'settings.openXlsxMissing') : `Couldn't open battlepass.xlsx: ${result.error || 'unknown error'}`);
+    }
+  });
+
   document.getElementById('claim-mode-toggle').addEventListener('click', () => {
     state.claimMode = !state.claimMode;
     persist();

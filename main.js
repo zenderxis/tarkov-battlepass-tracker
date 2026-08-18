@@ -336,6 +336,16 @@ ipcMain.handle('shell:openExternal', (e, url) => {
   }
 });
 
+// "Open battlepass.xlsx" button in Settings — opens the real, writable
+// spreadsheet (userData, not the app's own directory — see
+// migrateLegacyXlsx() above) in whatever app Windows has associated with
+// .xlsx, same as double-clicking it in Explorer.
+ipcMain.handle('shell:openXlsx', async () => {
+  if (!fs.existsSync(XLSX_SOURCE_PATH)) return { opened: false, reason: 'no-file' };
+  const err = await shell.openPath(XLSX_SOURCE_PATH);
+  return err ? { opened: false, reason: 'shell-error', error: err } : { opened: true };
+});
+
 ipcMain.handle('map:open', () => {
   ensureMapView();
   mainWindow.setBrowserView(mapView);
