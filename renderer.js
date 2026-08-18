@@ -577,9 +577,11 @@ function seasonNeeds() {
   return deficits;
 }
 
-// Collapsed <details> on the Main tab (see .season-summary in index.html) —
-// called from renderPage() so it stays in sync with claims, sidebarMode, and
-// owned-count changes the same way the per-page needs widget already does.
+// Collapsed <details> in Settings, above the Levels section (see
+// .season-summary in index.html) — called from renderPage() so it stays in
+// sync with claims, sidebarMode, and owned-count changes the same way the
+// per-page needs widget already does, even though it's not visible unless
+// Settings happens to be open at the time.
 function renderSeasonSummary() {
   const statsEl = document.getElementById('season-summary-stats');
   const needsEl = document.getElementById('season-summary-needs');

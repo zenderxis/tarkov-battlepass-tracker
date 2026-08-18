@@ -1258,17 +1258,16 @@ html, body {
   color: white;
 }
 
-/* Season-wide needs — collapsed by default (see the plain <details>, no
-   [open] attribute, unlike the Levels editor's Settings section which is
-   deliberately open). Reuses .settings-section's box/summary chevron
-   styling and .page-need-item's chip look (see main.js's pageNeeds()
-   sibling, seasonNeeds(), for the aggregation logic) so it reads as the
-   same kind of widget as the per-page needs row above the tiles, just
-   scoped to the whole season instead of one page. */
-.season-summary {
-  margin-bottom: 16px;
-}
-
+/* Season-wide needs — lives in Settings, right above the Levels section
+   (a summary of what's still needed, right next to where you'd go fill
+   more of it in). Collapsed by default (plain <details>, no [open]
+   attribute, unlike Levels which is deliberately open) — spacing above/
+   below comes from the shared ".settings-panel > *" rule, same as every
+   other Settings row, no override needed here. Reuses .settings-section's
+   box/summary chevron styling and .page-need-item's chip look (see
+   renderer.js's pageNeeds() sibling, seasonNeeds(), for the aggregation
+   logic) so it reads as the same kind of widget as the per-page needs row
+   above the tiles, just scoped to the whole season instead of one page. */
 .season-summary-stats {
   font-size: 12px;
   color: #9aa0ac;
