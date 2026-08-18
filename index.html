@@ -117,8 +117,13 @@
 
       <details class="settings-section" id="about-section">
         <summary data-i18n="settings.aboutButton">About</summary>
-        <p data-i18n="settings.aboutBody">How the spreadsheet works: each Battlepass level costs a set number of documents, split across types like Financial, Medical, or PMC files. The total for a level is the same for everyone, but which types make it up is personal to you — that's why there's no pre-filled spreadsheet. Fill in your own per-type counts for each level (Excel or CSV, your choice), keeping each row's document-type columns adding up to its Total Documents value. Then use Import spreadsheet below to load those costs into the app. Claiming and unclaiming rewards happens here in the app — the spreadsheet only ever defines what each level costs, not your progress.</p>
+        <p data-i18n="settings.aboutBody">How the spreadsheet works: each Battlepass level costs a set number of documents, split across types like Financial, Medical, or PMC files. The total for a level is the same for everyone, but which types make it up is personal to you — that's why there's no pre-filled spreadsheet. Fill in your own per-type counts for each level (Excel or CSV, your choice), keeping each row's document-type columns adding up to its Total Documents value. Then use Read from spreadsheet below to load those costs into the app. Claiming and unclaiming rewards happens here in the app — the spreadsheet only ever defines what each level costs, not your progress.</p>
       </details>
+
+      <div class="tour-trigger-row">
+        <span class="hint" data-i18n="settings.tourHint">New to the app? Take a guided tour of the main screen.</span>
+        <button id="start-tour-btn" data-i18n="settings.tourButton">Start Walkthrough</button>
+      </div>
 
       <div class="settings-topbar">
         <div class="language-picker">
@@ -231,6 +236,24 @@
       <div class="walkthrough-actions">
         <button id="walkthrough-dismiss" data-i18n="walkthrough.dismissButton">Got it</button>
         <button id="walkthrough-open-settings" class="primary" data-i18n="walkthrough.openSettingsButton">Open Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guided walkthrough tour (Settings -> Start Walkthrough) — a
+       re-triggerable, skippable step-by-step tour that highlights real
+       Main-tab elements one at a time, distinct from the one-time
+       first-launch overlay above. Positioned/populated entirely by
+       renderer.js's tour* functions. -->
+  <div class="tour-tip" id="tour-tip">
+    <div class="tour-tip-step" id="tour-tip-step"></div>
+    <div class="tour-tip-title" id="tour-tip-title"></div>
+    <div class="tour-tip-body" id="tour-tip-body"></div>
+    <div class="tour-tip-actions">
+      <button id="tour-skip-btn" class="tour-skip-btn" data-i18n="tour.skip">Skip</button>
+      <div class="tour-tip-nav">
+        <button id="tour-back-btn" data-i18n="tour.back">Back</button>
+        <button id="tour-next-btn" class="primary" data-i18n="tour.next">Next</button>
       </div>
     </div>
   </div>

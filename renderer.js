@@ -107,6 +107,19 @@ function wireStaticControls() {
     setSettingsOpen(true);
   });
 
+  document.getElementById('start-tour-btn').addEventListener('click', () => startTour());
+  document.getElementById('tour-skip-btn').addEventListener('click', () => endTour());
+  document.getElementById('tour-back-btn').addEventListener('click', () => {
+    if (tourStepIndex > 0) showTourStep(tourStepIndex - 1);
+  });
+  document.getElementById('tour-next-btn').addEventListener('click', () => {
+    if (tourStepIndex < TOUR_STEPS.length - 1) showTourStep(tourStepIndex + 1);
+    else endTour();
+  });
+  window.addEventListener('resize', () => {
+    if (tourHighlightEl) positionTourTip(tourHighlightEl, document.getElementById('tour-tip'));
+  });
+
   document.getElementById('btn-settings').addEventListener('click', () => setSettingsOpen(true));
   document.getElementById('settings-close').addEventListener('click', () => setSettingsOpen(false));
   document.getElementById('settings-overlay').addEventListener('click', (e) => {
@@ -122,11 +135,13 @@ function wireStaticControls() {
     // the backdrop. No confirm — every edit in Settings already saves as
     // it's made (see persist() calls throughout), so there's nothing to
     // lose by closing, and whatever was changed stays changed either way.
-    // Same treatment for the (higher-priority) walkthrough overlay if it's
-    // the one currently showing.
+    // Same treatment for the (higher-priority) walkthrough overlay and
+    // guided tour, if either is the one currently showing.
     if (e.key === 'Escape') {
       if (document.getElementById('walkthrough-overlay').classList.contains('open')) {
         dismissWalkthrough();
+      } else if (tourHighlightEl) {
+        endTour();
       } else if (document.getElementById('settings-overlay').classList.contains('open')) {
         setSettingsOpen(false);
       }
@@ -318,7 +333,10 @@ function renderClaimMode() {
 
 function setSettingsOpen(open) {
   document.getElementById('settings-overlay').classList.toggle('open', open);
-  if (open) populateBackupSelect();
+  if (open) {
+    populateBackupSelect();
+    endTour(); // Settings covers the whole tab — nothing left for a tour tip to point at
+  }
 }
 
 // Fills the "Restore from backup" dropdown, newest first. Re-run whenever
@@ -378,6 +396,103 @@ function switchTab(tab) {
   } else {
     window.tracker.closeMap();
   }
+
+  // Every tour step targets something on the Main tab (see TOUR_STEPS) —
+  // navigating away mid-tour would leave the tip pointing at a hidden
+  // element, so just end it rather than try to carry it across tabs.
+  if (tab !== 'main') endTour();
+}
+
+// ---------- guided walkthrough tour ----------
+//
+// A short, re-triggerable, skippable product tour (Settings -> Start
+// Walkthrough) that highlights real Main-tab elements one at a time —
+// distinct from maybeShowWalkthrough() above, which is a single one-time
+// explanation screen shown automatically on a fresh install. This one only
+// ever starts when the user explicitly asks for it, and can be taken as
+// many times as they like.
+//
+// Each step's target is a stable, always-present container element (never
+// something that gets torn down and rebuilt via innerHTML = '' — see the
+// selectors below), so adding/removing the .tour-highlight class survives
+// any renderPage()/renderSidebar() that happens to fire while a step is
+// showing (e.g. claiming a tile mid-tour).
+const TOUR_STEPS = [
+  { selector: '#main-sidebar', titleKey: 'tour.step1Title', bodyKey: 'tour.step1Body' },
+  { selector: '#sidebar-mode-tabs', titleKey: 'tour.step2Title', bodyKey: 'tour.step2Body' },
+  { selector: '#tile-grid', titleKey: 'tour.step3Title', bodyKey: 'tour.step3Body' },
+  { selector: '.page-nav', titleKey: 'tour.step4Title', bodyKey: 'tour.step4Body' },
+  { selector: '#page-needs-heading', titleKey: 'tour.step5Title', bodyKey: 'tour.step5Body' },
+  { selector: '#btn-settings', titleKey: 'tour.step6Title', bodyKey: 'tour.step6Body' },
+];
+
+let tourStepIndex = 0;
+let tourHighlightEl = null;
+
+function startTour() {
+  setSettingsOpen(false);
+  switchTab('main');
+  // Let the tab-switch's class toggles actually paint before measuring
+  // anything for positioning — getBoundingClientRect() right after a
+  // display change in the same tick can read stale layout.
+  requestAnimationFrame(() => showTourStep(0));
+}
+
+function clearTourHighlight() {
+  if (tourHighlightEl) {
+    tourHighlightEl.classList.remove('tour-highlight');
+    tourHighlightEl = null;
+  }
+}
+
+function showTourStep(index) {
+  const step = TOUR_STEPS[index];
+  const target = document.querySelector(step.selector);
+  if (!target) {
+    endTour(); // shouldn't happen — bail cleanly rather than show a tip pointing at nothing
+    return;
+  }
+
+  clearTourHighlight();
+  tourStepIndex = index;
+  target.classList.add('tour-highlight');
+  tourHighlightEl = target;
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  const lang = state.language || 'en';
+  const tip = document.getElementById('tour-tip');
+  document.getElementById('tour-tip-step').textContent = t(lang, 'tour.stepCounter', { current: index + 1, total: TOUR_STEPS.length });
+  document.getElementById('tour-tip-title').textContent = t(lang, step.titleKey);
+  document.getElementById('tour-tip-body').textContent = t(lang, step.bodyKey);
+  document.getElementById('tour-back-btn').disabled = index === 0;
+  document.getElementById('tour-next-btn').textContent = t(lang, index === TOUR_STEPS.length - 1 ? 'tour.done' : 'tour.next');
+
+  tip.classList.add('open');
+  positionTourTip(target, tip);
+}
+
+// Same "position near the target, flip to the other side if it wouldn't
+// fit" approach as positionDocTooltip() elsewhere in this file, just
+// vertical (below-or-above) instead of that one's above-or-below-flipped
+// order, since the tour tip is taller and benefits from defaulting below
+// the target rather than above it.
+function positionTourTip(target, tip) {
+  const rect = target.getBoundingClientRect();
+  const tipRect = tip.getBoundingClientRect();
+  let top = rect.bottom + 12;
+  if (top + tipRect.height > window.innerHeight - 8) {
+    top = rect.top - tipRect.height - 12; // not enough room below — flip above
+  }
+  top = Math.max(8, top);
+  let left = rect.left + rect.width / 2 - tipRect.width / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tipRect.width - 8));
+  tip.style.top = `${top}px`;
+  tip.style.left = `${left}px`;
+}
+
+function endTour() {
+  clearTourHighlight();
+  document.getElementById('tour-tip').classList.remove('open');
 }
 
 // ---------- shared helpers ----------

@@ -766,6 +766,17 @@ html, body {
   color: #c9cdd6;
 }
 
+.tour-trigger-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tour-trigger-row .hint {
+  margin: 0;
+}
+
 .settings-section[open] {
   padding-bottom: 14px;
 }
@@ -1029,6 +1040,91 @@ html, body {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* Guided tour — the ring lives directly on whatever element is targeted
+   (see .tour-highlight below), not a full-screen dim-plus-cutout overlay,
+   deliberately: a giant box-shadow "spotlight" trick would get silently
+   clipped by .panel's scroll clipping for any target inside it, and a
+   separate fixed backdrop would need the target lifted above it with
+   z-index, which breaks the moment any ancestor between the target and the
+   viewport turns out to already have its own stacking context. A plain
+   outline avoids both failure modes entirely — outline is only ever
+   clipped by the element's own overflow, never an ancestor's, and needs no
+   z-index games since there's no backdrop underneath it to begin with. */
+.tour-highlight {
+  outline: 3px solid var(--accent-bright);
+  outline-offset: 4px;
+  border-radius: 10px;
+}
+
+.tour-tip {
+  display: none;
+  position: fixed;
+  z-index: 300;
+  width: min(300px, 90vw);
+  background: #1b1d23;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+}
+
+.tour-tip.open {
+  display: block;
+}
+
+.tour-tip-step {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-bright);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.tour-tip-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.tour-tip-body {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #c9cdd6;
+  margin-bottom: 12px;
+}
+
+.tour-tip-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tour-skip-btn {
+  background: transparent;
+  border: none;
+  color: #6a6f7b;
+  font-size: 11px;
+  padding: 4px 2px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tour-skip-btn:hover {
+  color: #9aa0ac;
+}
+
+.tour-tip-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.tour-tip-nav button {
+  font-size: 12px;
+  padding: 6px 14px;
 }
 
 .settings-header {
